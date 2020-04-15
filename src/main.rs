@@ -1,14 +1,13 @@
 extern crate sdl2; 
 
-use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
-use std::path::Path;
+
 
 // use sdl2::event::Event;
 //use sdl2::keyboard::Keycode;
-use sdl2::rect::Rect;
+// use sdl2::rect::Rect;
 //use sdl2::rect::Point;
 //use std::time::Duration;
 
@@ -34,36 +33,41 @@ fn handle_events(event_pump: &mut sdl2::EventPump ) -> bool {
 
 
 pub fn main() {
-    let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
+
+    // let sdl_context = sdl2::init().unwrap();
+    // let video_subsystem = sdl_context.video().unwrap();
  
-    let window = video_subsystem.window("rust-sdl2 demo", 800, 600)
-        .position_centered()
-        .build()
-        .unwrap();
+    // let window = video_subsystem.window("rust-sdl2 demo", 800, 600)
+    //     .position_centered()
+    //     .build()
+    //     .unwrap();
  
-    let mut canvas = window.into_canvas().build().unwrap();
+    // let mut canvas = window.into_canvas().build().unwrap();
 
-    canvas.set_draw_color(Color::RGB(180, 180, 180));
+    let mut gs = game::init();
 
+  //  let mut canvas = gs.canvas;
 
-
-    canvas.clear();
-    canvas.present();
-    let mut event_pump = sdl_context.event_pump().unwrap();
-    let mut i = 0;
-//    let mut array: [[u8;10 ];10];
-//    array[0][0] = 1;
-
-//    println!("{}", array);
-    let temp_surface = sdl2::surface::Surface::load_bmp(Path::new("img/bg1.bmp")).unwrap();
-    let texture_creator = canvas.texture_creator();
-
-    let texture = texture_creator.create_texture_from_surface(&temp_surface)
-        .map_err(|e| e.to_string()).unwrap();
+    
+//    canvas.set_draw_color(Color::RGB(180, 180, 180));
 
 
-    let source_rect = Rect::new(0, 0, 12, 10);
+    
+//    canvas.clear();
+  //  canvas.present();
+ //   let mut event_pump = sdl_context.event_pump().unwrap();
+ //   let mut event_pump = gs.event_pump;
+
+//   let mut i = 0;
+
+    // let temp_surface = sdl2::surface::Surface::load_bmp(Path::new("img/bg1.bmp")).unwrap();
+    // let texture_creator = canvas.texture_creator();
+
+    // let texture = texture_creator.create_texture_from_surface(&temp_surface)
+    //     .map_err(|e| e.to_string()).unwrap();
+
+
+//        let source_rect = Rect::new(0, 0, 12, 10);
 
     let mut finished = false;
     let level1 = "
@@ -91,36 +95,22 @@ pub fn main() {
       }
       println!("");
   }
-    const WIDTH :u32 = 16;
-    const HEIGHT :u32 = 8;
-    const scale :u32 = 2;
+//    const WIDTH :u32 = 16;
+ //   const HEIGHT :u32 = 8;
+ //   const scale :u32 = 2;
 
     // let size = array.len();
 
-     while !finished {
+     while !gs.finished() {
 
-        canvas.clear();
+        gs.clear();
 
-        for x  in 0..25 {
-            for y in 0..38 {
+        game::draw_background_tiles(&mut gs);
 
-                let dest_rect = Rect::new( (x*WIDTH*scale) as i32,
-                    (y*HEIGHT*scale) as i32,
-                    WIDTH *scale,
-                    HEIGHT * scale);
-                
-                    canvas.copy_ex(&texture,
-                    Some(source_rect),
-                     Some(dest_rect),
-                     0.0, None, false, false).unwrap();
-      
-            }
-        }
-
-        canvas.present();
+        gs.present();
  
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
-        finished = handle_events(&mut event_pump);
+//        finished = handle_events(&mut event_pump);
 
             
         
