@@ -28,22 +28,21 @@ impl GraphicsSubsystem {
     pub fn finished(&self) -> bool {
         return false;
     }
-    pub fn clear(&self) {
-//        self.canvas.clear();
+    pub fn clear(&mut self) {
+        self.canvas.clear();
     }
-    pub fn present(&self) {
-        //      self.canvas.present();
+    pub fn present(&mut self) {
+        self.canvas.present();
     }
 
-    // pub fn getBrickTexture(&self) -> &Texture {
-    //     let temp_surface = sdl2::surface::Surface::load_bmp(Path::new("img/bg1.bmp")).unwrap();
+    pub fn get_brick_texture(&self) -> Texture {
+        let temp_surface = sdl2::surface::Surface::load_bmp(Path::new("img/bg1.bmp")).unwrap();
 
 
-    //     let brick_texture = self.texture_creator.create_texture_from_surface(&temp_surface)
-    //     .map_err(|e| e.to_string()).unwrap();
+         let brick_texture = self.texture_creator.create_texture_from_surface(&temp_surface).unwrap();
 
-    //     &brick_texture
-    // }
+         brick_texture
+     }
 }
 
 pub fn init() -> GraphicsSubsystem {
@@ -96,13 +95,17 @@ pub fn load_map(level: &String) -> TileMap {
 }
 
 
-pub fn draw_background_tiles(gs: &mut GraphicsSubsystem) {
+pub fn draw_background_tiles<'a>(gs: &GraphicsSubsystem) {
     const WIDTH: u32 = 16;
     const HEIGHT: u32 = 8;
 
 
     //  let texture = gs.brick_texture;
     let source_rect = Rect::new(0, 0, 12, 10);
+
+    let texture = gs.get_brick_texture();
+
+    let canvas = &gs.canvas;
 
     for x in 0..25 {
         for y in 0..38 {
@@ -111,10 +114,10 @@ pub fn draw_background_tiles(gs: &mut GraphicsSubsystem) {
                                       WIDTH * scale,
                                       HEIGHT * scale);
 
-            // gs.canvas.copy_ex(&texture,
-            // Some(source_rect),
-            //  Some(dest_rect),
-            //  0.0, None, false, false).unwrap();
+             canvas.copy_ex(&texture,
+             Some(source_rect),
+              Some(dest_rect),
+              0.0, None, false, false).unwrap();
         }
     }
 }

@@ -46,30 +46,20 @@ pub fn main() {
 
     let mut gs = game::init();
 
-  //  let mut canvas = gs.canvas;
+    let mut canvas = gs.canvas;
+
+ 
+//    sdl2::render::c
+  //  canvas.set_draw_color(Color::RGB(180, 180, 180));
+
 
     
-//    canvas.set_draw_color(Color::RGB(180, 180, 180));
+    canvas.clear();
+    canvas.present();
+
+    let mut event_pump = gs.event_pump;
 
 
-    
-//    canvas.clear();
-  //  canvas.present();
- //   let mut event_pump = sdl_context.event_pump().unwrap();
- //   let mut event_pump = gs.event_pump;
-
-//   let mut i = 0;
-
-    // let temp_surface = sdl2::surface::Surface::load_bmp(Path::new("img/bg1.bmp")).unwrap();
-    // let texture_creator = canvas.texture_creator();
-
-    // let texture = texture_creator.create_texture_from_surface(&temp_surface)
-    //     .map_err(|e| e.to_string()).unwrap();
-
-
-//        let source_rect = Rect::new(0, 0, 12, 10);
-
-    let mut finished = false;
     let level1 = "
     x - - - - - - -
     - - x x x x x -
@@ -105,7 +95,7 @@ pub fn main() {
 
         gs.clear();
 
-        game::draw_background_tiles(&mut gs);
+        game::draw_background_tiles(&gs);
 
         gs.present();
  
