@@ -17,18 +17,11 @@ pub struct TileMap {
     pub tile_info : HashMap<char, u32>
 }
 
-fn get_tile(c: char) -> DrawTextureParams {
-    let params = DrawTextureParams {
-        dest_size: Some(Vec2::new(16., 16.)),
-        source: Some(macroquad::Rect::new(0., 0., 16., 16.)),
-        rotation: 0.,
-    };
 
-    params
-}
 
 impl TileMap {
-    pub fn dimensions(&self) -> (usize, usize) {
+
+    fn dimensions(&self) -> (usize, usize) {
         let mut width: usize = 0;
         let height: usize = self.map.len();
         for x in &self.map {
@@ -36,6 +29,17 @@ impl TileMap {
         }
 
         (width, height)
+    }
+
+    fn get_tile(&self, c: char) -> DrawTextureParams {
+        let offset = *self.tile_info.get(&c).unwrap() as f32;
+        let params = DrawTextureParams {
+            dest_size: Some(Vec2::new(16., 16.)),
+            source: Some(macroquad::Rect::new(offset, 0., 16., 16.)),
+            rotation: 0.,
+        };
+    
+        params
     }
 
     pub fn draw(&self) {
@@ -53,7 +57,11 @@ impl TileMap {
                 let tile = self.map.get(x).
                 unwrap().get(y).expect("Tile not found");
                 if tile.c!='x'{
-                draw_texture_ex(self.texture_map, start_x, start_y, WHITE, get_tile(tile.c));
+                    draw_texture_ex(self.texture_map, 
+                        start_x,
+                         start_y,
+                          WHITE,
+                           self.get_tile(tile.c));
                 }
                 start_x = start_x + TILE_HEIGHT as f32;
             }
@@ -85,10 +93,10 @@ impl TileMap {
         tile_info.insert('E', 32u32);
         tile_info.insert('B', 48u32);
         tile_info.insert('P', 64u32);
-        tile_info.insert('C', 16u32);
-        tile_info.insert('D', 16u32);
-        
-        tile_info.insert('-', 16u32);
+        tile_info.insert('C', 80u32);
+        tile_info.insert('D', 96u32);
+        tile_info.insert('?', 112u32);
+        tile_info.insert('-', 128u32);
 
 
         TileMap { map, texture_map, tile_info }

@@ -10,7 +10,7 @@ async fn main() {
     - x x x B P C -
     - x x G P C D -
     - x E B X D - -
-    - - - - - - - -
+    - - - - - - - x
   ";
 
     let level1 = level1.replace(" ", "");
