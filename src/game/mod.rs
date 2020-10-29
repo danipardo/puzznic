@@ -1,123 +1,109 @@
-use sdl2::render::Texture;
-use sdl2::render::Canvas;
-use sdl2::video::Window;
-use sdl2::rect::Rect;
-use std::path::Path;
-use sdl2::render::TextureCreator;
+use std::collections::HashMap;
 
-const scale: u32 = 2;
+use macroquad::*;
+
+const TILE_WIDTH: f32 = 16f32;
+const TILE_HEIGHT: f32 = 16f32;
+
 
 #[derive(Debug, Copy, Clone)]
 pub struct Tile {
-    pub c: char
+    pub c: char,
 }
 
 pub struct TileMap {
-    pub map: Vec<Vec<Tile>>
+    pub map: Vec<Vec<Tile>>,
+    pub texture_map: Texture2D,
+    pub tile_info : HashMap<char, u32>
 }
 
-pub struct GraphicsSubsystem {
+fn get_tile(c: char) -> DrawTextureParams {
+    let params = DrawTextureParams {
+        dest_size: Some(Vec2::new(16., 16.)),
+        source: Some(macroquad::Rect::new(0., 0., 16., 16.)),
+        rotation: 0.,
+    };
 
-    pub canvas: Canvas<Window>,
-    pub brick_texture: Option<Texture<'static>>,
-    pub event_pump: sdl2::EventPump,
-    pub texture_creator: TextureCreator<sdl2::video::WindowContext>,
+    params
 }
 
-impl GraphicsSubsystem {
-    pub fn finished(&self) -> bool {
-        return false;
-    }
-    pub fn clear(&mut self) {
-        self.canvas.clear();
-    }
-    pub fn present(&mut self) {
-        self.canvas.present();
-    }
-
-    pub fn get_brick_texture(&self) -> Texture {
-        let temp_surface = sdl2::surface::Surface::load_bmp(Path::new("img/bg1.bmp")).unwrap();
-
-
-         let brick_texture = self.texture_creator.create_texture_from_surface(&temp_surface).unwrap();
-
-         brick_texture
-     }
-}
-
-pub fn init() -> GraphicsSubsystem {
-    let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
-
-    let window = video_subsystem.window("rust-sdl2 demo", 800, 600)
-        .position_centered()
-        .build()
-        .unwrap();
-
-    let temp_surface = sdl2::surface::Surface::load_bmp(Path::new("img/bg1.bmp")).unwrap();
-    let canvas = window.into_canvas().build().unwrap();
-
-    let texture_creator = canvas.texture_creator();
-//
-//     // init the backgorund bricks
-//     let texture_creator = canvas.texture_creator();
-//
-
-    //   let brick_texture =  texture_creator.create_texture_from_surface(&temp_surface).unwrap();
-//
-//
-    let event_pump = sdl_context.event_pump().unwrap();
-
-    GraphicsSubsystem {
-        canvas: canvas,
-        event_pump: event_pump,
-        brick_texture: None,
-        texture_creator: texture_creator,
-    }
-}
-
-pub fn load_map(level: &String) -> TileMap {
-    let mut map: Vec<Vec<Tile>> = vec![];
-
-    let lines = level.split("\n");
-
-    for line in lines {
-        let mut s1 = vec![];
-        for c in line.chars() {
-            let t: Tile = Tile { c };
-
-            s1.push(t);
+impl TileMap {
+    pub fn dimensions(&self) -> (usize, usize) {
+        let mut width: usize = 0;
+        let height: usize = self.map.len();
+        for x in &self.map {
+            width = std::cmp::max(width, x.len());
         }
 
-        map.push(s1);
+        (width, height)
     }
-    TileMap { map }
+
+    pub fn draw(&self) {
+        let dimensions = self.dimensions();
+
+        let mut start_x = screen_width() / 2. - dimensions.0 as f32 * TILE_WIDTH / 2. as f32;
+        let mut start_y = screen_height() / 2. - dimensions.1 as f32 * TILE_HEIGHT / 2. as f32;
+
+        debug!("Dimensions: {} {}", dimensions.0, dimensions.1);
+
+        
+        for y in 0..dimensions.0 {
+            for x in 0..8 {
+                debug!(" x: {}, y: {}", x, y);
+                let tile = self.map.get(x).
+                unwrap().get(y).expect("Tile not found");
+                if tile.c!='x'{
+                draw_texture_ex(self.texture_map, start_x, start_y, WHITE, get_tile(tile.c));
+                }
+                start_x = start_x + TILE_HEIGHT as f32;
+            }
+            start_x = screen_width() / 2. - dimensions.0 as f32 * TILE_WIDTH / 2. as f32;
+            start_y = start_y + TILE_WIDTH;
+        }
+    }
+    pub async fn new(level: &String) -> Self {
+        let mut map: Vec<Vec<Tile>> = vec![];
+
+        let lines = level.split("\n");
+
+        for line in lines {
+            let mut s1 = vec![];
+            for c in line.chars() {
+                let t: Tile = Tile { c };
+
+                s1.push(t);
+            }
+
+            map.push(s1);
+        }
+
+        let texture_map = macroquad::load_texture("img/tiles.png").await;
+
+        let mut tile_info = HashMap::new();
+        tile_info.insert('G', 0u32);
+        tile_info.insert('X', 16u32);
+        tile_info.insert('E', 32u32);
+        tile_info.insert('B', 48u32);
+        tile_info.insert('P', 64u32);
+        tile_info.insert('C', 16u32);
+        tile_info.insert('D', 16u32);
+        
+        tile_info.insert('-', 16u32);
+
+
+        TileMap { map, texture_map, tile_info }
+    }
 }
 
+pub async fn play_level(level: &TileMap) {
+    loop {
+        clear_background(GRAY);
 
-pub fn draw_background_tiles<'a>(gs: &GraphicsSubsystem) {
-    const WIDTH: u32 = 16;
-    const HEIGHT: u32 = 8;
+        level.draw();
 
-
-    //  let texture = gs.brick_texture;
-    let source_rect = Rect::new(0, 0, 12, 10);
-
-    let texture = gs.get_brick_texture();
-
-    let canvas = &gs.canvas;
-
-    for x in 0..25 {
-        for y in 0..38 {
-            let dest_rect = Rect::new((x * WIDTH * scale) as i32,
-                                      (y * HEIGHT * scale) as i32,
-                                      WIDTH * scale,
-                                      HEIGHT * scale);
-
-             canvas.copy_ex(&texture,
-             Some(source_rect),
-              Some(dest_rect),
-              0.0, None, false, false).unwrap();
+        if macroquad::is_key_down(KeyCode::Escape) {
+            break;
         }
+        next_frame().await;
     }
 }
