@@ -14,9 +14,9 @@ async fn main() {
   ";
 
     let level1 = level1.replace(" ", "");
-    let tilemap = game::TileMap::new(&level1).await;
+    let mut tilemap = game::TileMap::new(&level1).await;
 
-    game::play_level(&tilemap).await;
+    game::play_level(&mut tilemap).await;
 
     // for x in tilemap.map{
     //     for title in x {
