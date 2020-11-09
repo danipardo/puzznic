@@ -8,6 +8,8 @@ const TILE_HEIGHT: f32 = 48f32;
 #[derive(Debug)]
 pub struct Tile {
     pub c: char,
+    x: u32,
+    y: u32,
 }
 pub struct TileMap {
     pub map: Vec<Vec<Tile>>,
@@ -186,21 +188,51 @@ impl TileMap {
             let t2 = self.get_tile_at(new_x, new_y).c;
             debug!("t1: {} t2: {}", t1, t2);
 
-            if t1 != 'x' && t1 == t2 {
-                // Blank tile. Gone. Nada
-                self.change_tile(x, y, 'x');
-                self.change_tile(new_x, new_y, 'x');
-            } else if t1 != 'x' && t2 == 'x' {
-                // Moves the tile
+            if t2 == 'x' {
                 self.change_tile(new_x, new_y, t1);
                 self.change_tile(x, y, 'x');
-            } else if t1 != 'x' && t1 != t2 {
-                return;
             }
         }
 
         self.player.position.0 = new_x;
         self.player.position.1 = new_y;
+    }
+
+    // For each tile, check if it collides with any other tile 
+    // Also, if there's nothing beneath, it should fall
+    pub fn move_tiles(&mut self) {
+
+        for y in 0..self.dimensions.0 {
+            for x in 0..8 {
+                //debug!(" x: {}, y: {}", start_x, start_y);
+                let tile = self.get_tile_at(x, y);
+                if y < self.dimensions.y {
+                    let beneath = self.get_tile_at(x, y+1);
+                    if beneath.c == 'x' {
+                        // fall down
+                    }
+                }
+                if x > 0 {
+                    self.process_match(x,y, x-1 , y);
+                }
+                if x < self.dimensions.0 {
+                    self.process_match(x,y, x-1 , y);
+                }
+
+                if y > 0 {
+                    self.process_match(x,y, x , y-1);
+                }
+                if y < self.dimensions.1 {
+                    self.process_match(x,y, x , y+1);
+                }
+
+            }
+        }
+    }
+    
+    fn process_match(&mut self, x1: usize, y1: usize, x: usize, y: usize){
+
+
     }
 }
 
@@ -224,7 +256,7 @@ pub async fn play_level(level: &mut TileMap) {
             level.move_player(Direction::Right);
         }
 
-        if macroquad::is_key_pressed(KeyCode::Up) {
+        if macroquad::is_key_pressed(KeyCode::Up) && !level.dragging {
             level.move_player(Direction::Up);
         }
 
@@ -234,6 +266,7 @@ pub async fn play_level(level: &mut TileMap) {
 
         level.dragging = macroquad::is_key_down(KeyCode::Space);
 
+        level.move_tiles();
         next_frame().await;
     }
 }
