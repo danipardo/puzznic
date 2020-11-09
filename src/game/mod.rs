@@ -4,12 +4,33 @@ use macroquad::*;
 
 const TILE_WIDTH: f32 = 48f32;
 const TILE_HEIGHT: f32 = 48f32;
+#[derive(Debug)]
+pub enum TileState {
+    NONE,
+    SlideRight,
+    SlideLeft,
+    SlideDown,
+    SlideUp,
+}
 
 #[derive(Debug)]
 pub struct Tile {
     pub c: char,
     x: u32,
     y: u32,
+    state: TileState,
+}
+
+impl Tile {
+    pub fn do_move(&mut self) {
+        match self.state {
+            TileState::SlideLeft => self.x = self.x - 1,
+            TileState::SlideRight => self.x = self.x + 11,
+            TileState::SlideUp => self.y = self.y - 1,
+            TileState::SlideDown => self.y = self.y + 1,
+            TileState::NONE => {}
+        }
+    }
 }
 pub struct TileMap {
     pub map: Vec<Vec<Tile>>,
@@ -59,7 +80,7 @@ impl TileMap {
     }
 
     pub fn get_tile_at(&self, x: usize, y: usize) -> &Tile {
-        self.map.get(x).unwrap().get(y).expect("Tile not found")
+        self.map.get(y).unwrap().get(x).expect("Tile not found")
     }
 
     pub fn draw(&self) -> bool {
@@ -79,8 +100,8 @@ impl TileMap {
                 if tile.c != 'x' {
                     draw_texture_ex(
                         self.texture_map,
-                        start_x,
-                        start_y,
+                        tile.x as f32,
+                        tile.y as f32,
                         WHITE,
                         self.get_tile(tile.c),
                     );
@@ -107,20 +128,38 @@ impl TileMap {
 
         let lines = level.split("\n");
 
-        let mut rows: usize = 0;
-        let mut columns: usize = 0;
+        let rows: usize = lines.count() - 1;
+        let columns = &level
+            .split("\n")
+            .into_iter()
+            .map(|e| e.chars().count())
+            .max()
+            .unwrap();
+
+        debug!("rows: {}, cols: {}", rows, *columns);
+        let lines = level.split("\n");
+        let mut start_x = screen_width() / 2. - *columns as f32 * TILE_WIDTH / 2. as f32;
+        let mut start_y = screen_height() / 2. - rows as f32 * TILE_HEIGHT / 2. as f32;
+
         for line in lines {
             let mut s1 = vec![];
             for c in line.chars() {
-                let t: Tile = Tile { c };
+                let t: Tile = Tile {
+                    c,
+                    x: start_x as u32,
+                    y: start_y as u32,
+                    state: TileState::NONE,
+                };
                 s1.push(t);
+                start_x = start_x + TILE_WIDTH as f32;
             }
-            rows = rows + 1;
-            let length = s1.len();
-            columns = std::cmp::max(columns, length);
+            start_y = start_y + TILE_HEIGHT as f32;
+            start_x = screen_width() / 2. - *columns as f32 * TILE_WIDTH / 2. as f32;
+
             map.push(s1);
         }
 
+        debug!("{:?}", map);
         let texture_map = macroquad::load_texture("img/tiles.png").await;
 
         let mut tile_info = HashMap::new();
@@ -141,13 +180,13 @@ impl TileMap {
             player: Player {
                 position: (columns / 2, rows / 2),
             },
-            dimensions: (columns, rows),
+            dimensions: (*columns, rows),
             dragging: false,
         }
     }
 
     pub fn change_tile(&mut self, x: usize, y: usize, c: char) {
-        let tile: &mut Tile = self.map.get_mut(x).unwrap().get_mut(y).unwrap();
+        let tile: &mut Tile = self.map.get_mut(y).unwrap().get_mut(x).unwrap();
         tile.c = c;
     }
 
@@ -158,13 +197,18 @@ impl TileMap {
         let mut new_x: usize = self.player.position.0;
         let mut new_y: usize = self.player.position.1;
 
+        let mut tile_state = TileState::NONE;
         match direction {
             Direction::Left => {
                 if new_x > 0 {
                     new_x = new_x - 1;
+                    tile_state = TileState::SlideLeft;
                 }
             }
-            Direction::Right => new_x = usize::min(self.dimensions.0, new_x + 1),
+            Direction::Right => {
+                new_x = usize::min(self.dimensions.0, new_x + 1);
+                tile_state = TileState::SlideRight
+            }
             Direction::Up => {
                 if new_y > 0 {
                     new_y = new_y - 1;
@@ -174,7 +218,6 @@ impl TileMap {
             Direction::Down => new_y = usize::min(self.dimensions.1, new_y + 1),
         }
 
-        debug!("Moving to {},{}, dragging: {}", new_x, new_y, self.dragging);
         if self.get_tile_at(new_x, new_y).c == '-' {
             return;
         }
@@ -184,56 +227,38 @@ impl TileMap {
             // If it's the same tile type, we have a match
             // Otherwise we cannot move because tiles don't match
 
-            let t1 = self.get_tile_at(x, y).c;
-            let t2 = self.get_tile_at(new_x, new_y).c;
-            debug!("t1: {} t2: {}", t1, t2);
+            let tile = self.map.get_mut(y).unwrap().get_mut(x).unwrap();
 
-            if t2 == 'x' {
-                self.change_tile(new_x, new_y, t1);
-                self.change_tile(x, y, 'x');
-            }
+            tile.state = tile_state
+
+            // let t1 = self.get_tile_at(x, y).c;
+            // let t2 = self.get_tile_at(new_x, new_y).c;
+            // debug!("t1: {} t2: {}", t1, t2);
+
+            // if t2 == 'x' {
+            //     self.change_tile(new_x, new_y, t1);
+            //     self.change_tile(x, y, 'x');
+            // }
         }
-
+        debug!("Moving to {},{}, dragging: {}", new_x, new_y, self.dragging);
         self.player.position.0 = new_x;
         self.player.position.1 = new_y;
     }
 
-    // For each tile, check if it collides with any other tile 
+    // For each tile, check if it collides with any other tile
     // Also, if there's nothing beneath, it should fall
     pub fn move_tiles(&mut self) {
-
         for y in 0..self.dimensions.0 {
             for x in 0..8 {
                 //debug!(" x: {}, y: {}", start_x, start_y);
-                let tile = self.get_tile_at(x, y);
-                if y < self.dimensions.y {
-                    let beneath = self.get_tile_at(x, y+1);
-                    if beneath.c == 'x' {
-                        // fall down
-                    }
-                }
-                if x > 0 {
-                    self.process_match(x,y, x-1 , y);
-                }
-                if x < self.dimensions.0 {
-                    self.process_match(x,y, x-1 , y);
-                }
+                let tile = self.map.get_mut(y).unwrap().get_mut(x).unwrap();
 
-                if y > 0 {
-                    self.process_match(x,y, x , y-1);
-                }
-                if y < self.dimensions.1 {
-                    self.process_match(x,y, x , y+1);
-                }
-
+                tile.do_move();
             }
         }
     }
-    
-    fn process_match(&mut self, x1: usize, y1: usize, x: usize, y: usize){
 
-
-    }
+    fn process_match(&mut self, _x1: usize, _y1: usize, _x: usize, _y: usize) {}
 }
 
 pub async fn play_level(level: &mut TileMap) {
