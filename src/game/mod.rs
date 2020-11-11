@@ -1,35 +1,37 @@
-use std::collections::HashMap;
-
 use macroquad::*;
+use std::collections::HashMap;
 
 const TILE_WIDTH: f32 = 48f32;
 const TILE_HEIGHT: f32 = 48f32;
-#[derive(Debug)]
-pub enum TileState {
-    NONE,
-    SlideRight,
-    SlideLeft,
-    SlideDown,
-    SlideUp,
-}
 
 #[derive(Debug)]
 pub struct Tile {
     pub c: char,
-    x: u32,
-    y: u32,
-    state: TileState,
+    slide_step: u32,
+    position: Vec2,
+    velocity: Vec2,
 }
 
 impl Tile {
-    pub fn do_move(&mut self) {
-        match self.state {
-            TileState::SlideLeft => self.x = self.x - 1,
-            TileState::SlideRight => self.x = self.x + 11,
-            TileState::SlideUp => self.y = self.y - 1,
-            TileState::SlideDown => self.y = self.y + 1,
-            TileState::NONE => {}
+    pub fn do_move(&mut self) -> bool {
+        if self.velocity == Vec2::zero() {
+            return false;
         }
+        self.position = self.position + self.velocity;
+        self.slide_step += 1;
+        if self.slide_step == TILE_HEIGHT as u32 {
+            self.stop();
+            return true;
+        }
+        false
+    }
+    pub fn stop(&mut self) {
+        self.velocity = Vec2::new(0., 0.);
+        self.slide_step = 0;
+    }
+    pub fn _reverse_direction(&mut self) {
+        self.velocity.set_x(self.velocity.x() * -1.);
+        self.velocity.set_y(self.velocity.y() * -1.);
     }
 }
 pub struct TileMap {
@@ -100,8 +102,8 @@ impl TileMap {
                 if tile.c != 'x' {
                     draw_texture_ex(
                         self.texture_map,
-                        tile.x as f32,
-                        tile.y as f32,
+                        tile.position.x(),
+                        tile.position.y(),
                         WHITE,
                         self.get_tile(tile.c),
                     );
@@ -146,9 +148,10 @@ impl TileMap {
             for c in line.chars() {
                 let t: Tile = Tile {
                     c,
-                    x: start_x as u32,
-                    y: start_y as u32,
-                    state: TileState::NONE,
+                    position: Vec2::new(start_x, start_y),
+                    // state: TileState::NONE,
+                    slide_step: 0,
+                    velocity: Vec2::new(0., 0.),
                 };
                 s1.push(t);
                 start_x = start_x + TILE_WIDTH as f32;
@@ -185,11 +188,6 @@ impl TileMap {
         }
     }
 
-    pub fn change_tile(&mut self, x: usize, y: usize, c: char) {
-        let tile: &mut Tile = self.map.get_mut(y).unwrap().get_mut(x).unwrap();
-        tile.c = c;
-    }
-
     pub fn move_player(&mut self, direction: Direction) {
         let x: usize = self.player.position.0;
         let y: usize = self.player.position.1;
@@ -197,17 +195,20 @@ impl TileMap {
         let mut new_x: usize = self.player.position.0;
         let mut new_y: usize = self.player.position.1;
 
-        let mut tile_state = TileState::NONE;
+        // let mut tile_state = TileState::NONE;
+        let mut velocity = Vec2::new(0., 0.);
         match direction {
             Direction::Left => {
                 if new_x > 0 {
                     new_x = new_x - 1;
-                    tile_state = TileState::SlideLeft;
+                    // tile_state = TileState::SlideLeft;
+                    velocity = Vec2::new(-1., 0.);
                 }
             }
             Direction::Right => {
                 new_x = usize::min(self.dimensions.0, new_x + 1);
-                tile_state = TileState::SlideRight
+                // tile_state = TileState::SlideRight
+                velocity = Vec2::new(1., 0.);
             }
             Direction::Up => {
                 if new_y > 0 {
@@ -222,43 +223,26 @@ impl TileMap {
             return;
         }
         if self.dragging {
-            // Tile selected at player position
-            // Is there another tile in the new position?
-            // If it's the same tile type, we have a match
-            // Otherwise we cannot move because tiles don't match
-
             let tile = self.map.get_mut(y).unwrap().get_mut(x).unwrap();
-
-            tile.state = tile_state
-
-            // let t1 = self.get_tile_at(x, y).c;
-            // let t2 = self.get_tile_at(new_x, new_y).c;
-            // debug!("t1: {} t2: {}", t1, t2);
-
-            // if t2 == 'x' {
-            //     self.change_tile(new_x, new_y, t1);
-            //     self.change_tile(x, y, 'x');
-            // }
+            tile.velocity = velocity;
+            tile.slide_step = 0;
         }
         debug!("Moving to {},{}, dragging: {}", new_x, new_y, self.dragging);
         self.player.position.0 = new_x;
         self.player.position.1 = new_y;
     }
 
-    // For each tile, check if it collides with any other tile
-    // Also, if there's nothing beneath, it should fall
+    /// For each tile, check if it collides with any other tile
+    /// Also, if there's nothing beneath, it should fall
     pub fn move_tiles(&mut self) {
         for y in 0..self.dimensions.0 {
             for x in 0..8 {
-                //debug!(" x: {}, y: {}", start_x, start_y);
                 let tile = self.map.get_mut(y).unwrap().get_mut(x).unwrap();
-
-                tile.do_move();
+                let _changed_cell = tile.do_move();
             }
         }
     }
-
-    fn process_match(&mut self, _x1: usize, _y1: usize, _x: usize, _y: usize) {}
+  
 }
 
 pub async fn play_level(level: &mut TileMap) {
