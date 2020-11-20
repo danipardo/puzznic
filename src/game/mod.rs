@@ -35,7 +35,7 @@ impl Tile {
     }
 }
 pub struct TileMap {
-    pub map: Vec<Vec<Tile>>,
+    pub map: Vec<Tile>,
     pub texture_map: Texture2D, // single image that contains all the tiles
     pub tile_info: HashMap<char, u32>, // image offset of each tile in the main image
     pub dimensions: (usize, usize), // map dimensions
@@ -82,7 +82,7 @@ impl TileMap {
     }
 
     pub fn get_tile_at(&self, x: usize, y: usize) -> &Tile {
-        self.map.get(y).unwrap().get(x).expect("Tile not found")
+        self.map.get(y*self.dimensions.0 + x).expect("Tile not found")
     }
 
     pub fn draw(&self) -> bool {
@@ -126,7 +126,7 @@ impl TileMap {
     }
 
     pub async fn new(level: &String) -> Self {
-        let mut map: Vec<Vec<Tile>> = vec![];
+        let mut map: Vec<Tile> = vec![];
 
         let lines = level.split("\n");
 
@@ -144,7 +144,7 @@ impl TileMap {
         let mut start_y = screen_height() / 2. - rows as f32 * TILE_HEIGHT / 2. as f32;
 
         for line in lines {
-            let mut s1 = vec![];
+     //       let mut s1 = vec![];
             for c in line.chars() {
                 let t: Tile = Tile {
                     c,
@@ -153,13 +153,13 @@ impl TileMap {
                     slide_step: 0,
                     velocity: Vec2::new(0., 0.),
                 };
-                s1.push(t);
+                map.push(t);
                 start_x = start_x + TILE_WIDTH as f32;
             }
             start_y = start_y + TILE_HEIGHT as f32;
             start_x = screen_width() / 2. - *columns as f32 * TILE_WIDTH / 2. as f32;
 
-            map.push(s1);
+//            map.push(s1);
         }
 
         debug!("{:?}", map);
@@ -223,7 +223,7 @@ impl TileMap {
             return;
         }
         if self.dragging {
-            let tile = self.map.get_mut(y).unwrap().get_mut(x).unwrap();
+            let tile = self.map.get_mut(y * self.dimensions.0 + x).unwrap();
             tile.velocity = velocity;
             tile.slide_step = 0;
         }
@@ -237,7 +237,7 @@ impl TileMap {
     pub fn move_tiles(&mut self) {
         for y in 0..self.dimensions.0 {
             for x in 0..8 {
-                let tile = self.map.get_mut(y).unwrap().get_mut(x).unwrap();
+                let tile = self.map.get_mut(y * self.dimensions.0 + x).unwrap();
                 let _changed_cell = tile.do_move();
             }
         }
