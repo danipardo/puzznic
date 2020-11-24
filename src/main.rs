@@ -11,9 +11,20 @@ async fn main() {
     - x x G P C D -
     - x E B X D - -
     - - - - - - - x";
+    let level1 = 
+   "x - - - - - - -
+    - - x x x x x -
+    - x x x x x x -
+    - x x x x G X -
+    - x x x B P C -
+    - x x G P C D -
+    - x E x x x - -
+    - - - - - - - x";
 
     let level1 = level1.replace(" ", "");
     let mut tilemap = game::TileMap::new(&level1).await;
+
+    tilemap.draw_map(&tilemap.map);
 
     game::play_level(&mut tilemap).await;
 

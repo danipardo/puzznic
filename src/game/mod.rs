@@ -10,6 +10,13 @@ pub struct Tile {
     slide_step: u32,
     position: Vec2,
     velocity: Vec2,
+    position_changed: bool,
+    direction: Direction,
+}
+pub struct TileTransform {
+    x: usize,
+    y: usize,
+    transform: bool
 }
 
 impl Tile {
@@ -18,15 +25,20 @@ impl Tile {
             return false;
         }
         self.position = self.position + self.velocity;
+
+        debug!("{:?}", self.position);
         self.slide_step += 1;
         if self.slide_step == TILE_HEIGHT as u32 {
-            self.stop();
+            self.position_changed = true;
             return true;
+        } else {
+            self.position_changed = false;
         }
         false
     }
     pub fn stop(&mut self) {
         self.velocity = Vec2::new(0., 0.);
+        self.direction = Direction::None;
         self.slide_step = 0;
     }
     pub fn _reverse_direction(&mut self) {
@@ -47,12 +59,14 @@ pub struct Player {
     pub position: (usize, usize),
 }
 
-#[derive(PartialEq)]
+
+#[derive(PartialEq, Debug)]
 pub enum Direction {
     Left,
     Right,
     Up,
     Down,
+    None,
 }
 impl TileMap {
     fn get_tile(&self, c: char) -> DrawTextureParams {
@@ -82,24 +96,25 @@ impl TileMap {
     }
 
     pub fn get_tile_at(&self, x: usize, y: usize) -> &Tile {
-        self.map.get(y*self.dimensions.0 + x).expect("Tile not found")
+        self.map
+            .get(y * self.dimensions.0 + x)
+            .expect("Tile not found")
     }
 
     pub fn draw(&self) -> bool {
         let dimensions = self.dimensions;
 
-        let mut start_x = screen_width() / 2. - dimensions.0 as f32 * TILE_WIDTH / 2. as f32;
-        let mut start_y = screen_height() / 2. - dimensions.1 as f32 * TILE_HEIGHT / 2. as f32;
-
         let mut finished = true;
-        for y in 0..dimensions.0 {
-            for x in 0..8 {
-                //debug!(" x: {}, y: {}", start_x, start_y);
+        for y in 0..dimensions.1 {
+            for x in 0..dimensions.0 {
                 let tile = self.get_tile_at(x, y);
                 if tile.c != 'x' && tile.c != '-' {
                     finished = false;
                 }
                 if tile.c != 'x' {
+                    if tile.c == 'E' {
+                        debug!("Drawing E at {},{}", tile.position.x(), tile.position.y());
+                    }
                     draw_texture_ex(
                         self.texture_map,
                         tile.position.x(),
@@ -108,11 +123,7 @@ impl TileMap {
                         self.get_tile(tile.c),
                     );
                 }
-                start_x = start_x + TILE_HEIGHT as f32;
             }
-            //            start_x = screen_width() / 2. - dimensions.0 as f32 * TILE_WIDTH / 2. as f32;
-            start_x = screen_width() / 2. - dimensions.0 as f32 * TILE_WIDTH / 2. as f32;
-            start_y = start_y + TILE_WIDTH;
         }
 
         finished
@@ -130,7 +141,7 @@ impl TileMap {
 
         let lines = level.split("\n");
 
-        let rows: usize = lines.count() - 1;
+        let rows: usize = lines.count();
         let columns = &level
             .split("\n")
             .into_iter()
@@ -138,20 +149,19 @@ impl TileMap {
             .max()
             .unwrap();
 
-        debug!("rows: {}, cols: {}", rows, *columns);
         let lines = level.split("\n");
         let mut start_x = screen_width() / 2. - *columns as f32 * TILE_WIDTH / 2. as f32;
         let mut start_y = screen_height() / 2. - rows as f32 * TILE_HEIGHT / 2. as f32;
 
         for line in lines {
-     //       let mut s1 = vec![];
             for c in line.chars() {
                 let t: Tile = Tile {
                     c,
                     position: Vec2::new(start_x, start_y),
-                    // state: TileState::NONE,
                     slide_step: 0,
                     velocity: Vec2::new(0., 0.),
+                    position_changed: false,
+                    direction: Direction::None,
                 };
                 map.push(t);
                 start_x = start_x + TILE_WIDTH as f32;
@@ -159,10 +169,8 @@ impl TileMap {
             start_y = start_y + TILE_HEIGHT as f32;
             start_x = screen_width() / 2. - *columns as f32 * TILE_WIDTH / 2. as f32;
 
-//            map.push(s1);
         }
 
-        debug!("{:?}", map);
         let texture_map = macroquad::load_texture("img/tiles.png").await;
 
         let mut tile_info = HashMap::new();
@@ -201,13 +209,11 @@ impl TileMap {
             Direction::Left => {
                 if new_x > 0 {
                     new_x = new_x - 1;
-                    // tile_state = TileState::SlideLeft;
                     velocity = Vec2::new(-1., 0.);
                 }
             }
             Direction::Right => {
                 new_x = usize::min(self.dimensions.0, new_x + 1);
-                // tile_state = TileState::SlideRight
                 velocity = Vec2::new(1., 0.);
             }
             Direction::Up => {
@@ -215,17 +221,23 @@ impl TileMap {
                     new_y = new_y - 1;
                 }
             }
-
+            Direction::None => {}
             Direction::Down => new_y = usize::min(self.dimensions.1, new_y + 1),
         }
 
-        if self.get_tile_at(new_x, new_y).c == '-' {
+        let tile_underneath = self.get_tile_at(new_x, new_y).c;
+        debug!("Found: {}", tile_underneath);
+        if tile_underneath == '-' {
             return;
         }
         if self.dragging {
             let tile = self.map.get_mut(y * self.dimensions.0 + x).unwrap();
-            tile.velocity = velocity;
-            tile.slide_step = 0;
+            if tile.c != 'x' {
+                tile.velocity = velocity;
+                tile.direction = direction;
+            }
+            // if()
+            // tile.slide_step = 0;
         }
         debug!("Moving to {},{}, dragging: {}", new_x, new_y, self.dragging);
         self.player.position.0 = new_x;
@@ -236,13 +248,106 @@ impl TileMap {
     /// Also, if there's nothing beneath, it should fall
     pub fn move_tiles(&mut self) {
         for y in 0..self.dimensions.0 {
-            for x in 0..8 {
+            for x in 0..self.dimensions.1 {
                 let tile = self.map.get_mut(y * self.dimensions.0 + x).unwrap();
                 let _changed_cell = tile.do_move();
             }
         }
+
+        let changes = self.next_map(&self.map);
+
+        if changes.len() > 0 {
+            debug!("{:?}", changes);
+        }
+        for change in &changes {
+            let t = self
+                .map
+                .get_mut(change.1 * self.dimensions.0 + change.0)
+                .unwrap();
+            t.c = change.2;
+            t.position_changed = false;
+            t.direction = Direction::None;
+            t.velocity = Vec2::new(0., 0.);
+            t.stop();
+        }
+        if changes.len() > 0 {
+            self.draw_map(&self.map);
+        }
     }
-  
+
+    pub fn draw_map(&self, map: &Vec<Tile>) {
+        let map_width = self.dimensions.0;
+        let map_height = self.dimensions.1;
+
+        for y in 0..map_height {
+            for x in 0..map_width {
+                let tile = map.get(y * map_width + x).unwrap();
+                print!("{}", tile.c)
+            }
+            println!();
+        }
+    }
+
+    pub fn next_map(&self, map: &Vec<Tile>) -> Vec<TileTransform> {
+        let mut changes: Vec<(usize, usize, TileTransform)> = vec![];
+
+        let map_width = self.dimensions.0;
+        let map_height = self.dimensions.1;
+
+        for y in 0..map_height {
+            for x in 0..map_width {
+                let tile = map.get(y * map_width + x).unwrap();
+                // Changes should only trigger when the tile has finished the whole move transition
+                if !tile.position_changed {
+                    continue;
+                }
+                // Apply the new position on the changeset
+                match tile.direction {
+                    Direction::Up => {
+                        if y > 0 {
+                            changes.push((x, y - 1, tile.c));
+                            changes.push((x, y, 'x'));
+                        }
+                    }
+                    Direction::Down => {
+                        if y < map_height {
+                            changes.push((x, y + 1, tile.c));
+                            changes.push((x, y, 'x'));
+                        }
+                    }
+                    Direction::Left => {
+                        if x > 0 {
+                            changes.push((x - 1, y, tile.c));
+                            changes.push((x, y, 'x'));
+                            debug!("Tile {} moved to {},{}", tile.c, x - 1, y);
+                        }
+                    }
+                    Direction::Right => {
+                        if x < map_width {
+                            changes.push((x + 1, y, tile.c));
+                            changes.push((x, y, 'x'));
+                            debug!("Tile {} moved to {},{}", tile.c, x + 1, y);
+                        }
+                    }
+                    Direction::None => {}
+                }
+                // Put an emtpy space on the previous position, after the tile has moved
+
+                // // Should the tile fall if there is nothing underneath?
+                // let tile_below = map.get((x + 1) * map_height + y);
+                // if tile_below.is_none() {
+                //     continue;
+                // }
+                // let tile_below = tile_below.unwrap();
+                // if tile_below.c == 'x' {
+
+                //     changes.push((x + 1, y, tile.c));
+                // }
+            }
+        }
+
+        changes
+    }
 }
 
 pub async fn play_level(level: &mut TileMap) {
