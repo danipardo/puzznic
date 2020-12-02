@@ -11,15 +11,15 @@ async fn main() {
     - x x G P C D -
     - x E B X D - -
     - - - - - - - x";
-    let level1 = 
-   "x - - - - - - -
-    - - x x x x x -
-    - x x x x x x -
-    - x x x x G X -
-    - x x x B P C -
-    - x x G P C D -
-    - x E x x x - -
-    - - - - - - - x";
+//     let level1 = 
+//    "x - - - - - - -
+//     - - x x x x x -
+//     - x x x x G x -
+//     - x x x x x X -
+//     - x x x B P C -
+//     - x x C P C D -
+//     - x E C C C - -
+//     - - - - - - - x";
 
     let level1 = level1.replace(" ", "");
     let mut tilemap = game::TileMap::new(&level1).await;
