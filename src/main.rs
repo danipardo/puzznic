@@ -10,7 +10,7 @@ async fn main() {
     - x x G P C D -
     - x E B X D - -
     - - - - - - - x";
-    //     let level1 =
+    //     let level1 = 
     //    "x - - - - - - -
     //     - - x x x x x -
     //     - x x x x G x -
@@ -21,7 +21,7 @@ async fn main() {
     //     - - - - - - - x";
 
     let level1 = level1.replace(" ", "");
-    let mut tilemap = game::GameState::GameState::new(&level1).await;
+    let mut tilemap = game::game_state::GameState::new(&level1).await;
 
     // tilemap.draw_map(&tilemap.map);
 

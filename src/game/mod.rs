@@ -1,10 +1,10 @@
-pub(crate) mod GameState;
+ pub(crate) mod game_state;
 
-use macroquad::*;
+use macroquad::prelude::*;
 
-const TILE_WIDTH: f32 = 48f32;
-const TILE_HEIGHT: f32 = 48f32;
-const SPEED: f32 = 0.2;
+const TILE_WIDTH: f32 = 16f32;
+const TILE_HEIGHT: f32 = 16f32;
+const SPEED: f32 = 2.0;
 
 #[derive(Debug)]
 pub struct Tile {
@@ -57,17 +57,20 @@ pub enum Direction {
     Down,
     None,
 }
-pub fn handle_draw_player(level: &mut GameState::GameState) {
+pub fn handle_draw_player(level: &mut game_state::GameState) {
     // Draw player rectangle
-    let (x, y) = level.tile_to_coords(level.player.position.0, level.player.position.1);
+    let (x, y) = (
+        level.player.position.0 as f32 * TILE_WIDTH * 3.0,
+        level.player.position.1 as f32 * TILE_WIDTH * 3.0,
+    );
 
-    draw_rectangle_lines(x, y, TILE_WIDTH, TILE_HEIGHT, 8., RED);
+    draw_rectangle_lines(x, y, TILE_WIDTH * 3.0, TILE_HEIGHT * 3.0, 3., RED);
 }
 
-pub fn handle_draw_map(level: &mut GameState::GameState) {
+pub fn handle_draw_map(level: &mut game_state::GameState) {
     let dimensions = level.dimensions;
-    let mut start_x = screen_width() / 2. - dimensions.0 as f32 * TILE_WIDTH / 2. as f32;
-    let mut start_y = screen_height() / 2. - dimensions.1 as f32 * TILE_HEIGHT / 2. as f32;
+    let mut start_x = 0.0;
+    let mut start_y = 0.0;
 
     for y in 0..dimensions.1 {
         for x in 0..dimensions.0 {
@@ -75,21 +78,21 @@ pub fn handle_draw_map(level: &mut GameState::GameState) {
             if tile.c != 'x' {
                 draw_texture_ex(
                     level.texture_map,
-                    start_x + tile.position.x(),
-                    start_y + tile.position.y(),
+                    start_x + tile.position.x,
+                    start_y + tile.position.y,
                     WHITE,
                     level.get_tile_texture_params(tile.c),
                 );
             }
-            start_x = start_x + TILE_HEIGHT as f32;
+            start_x = start_x + TILE_HEIGHT * 3.0 as f32;
         }
 
-        start_x = screen_width() / 2. - dimensions.0 as f32 * TILE_WIDTH / 2. as f32;
-        start_y = start_y + TILE_WIDTH;
+        start_x = 0.0;
+        start_y = start_y + TILE_WIDTH * 3.0;
     }
 }
 
-pub fn handle_move_tiles(level: &mut GameState::GameState) {
+pub fn handle_move_tiles(level: &mut game_state::GameState) {
     for y in 0..level.dimensions.0 {
         for x in 0..level.dimensions.1 {
             let tile = level.map.get_mut(y * level.dimensions.0 + x).unwrap();
@@ -116,38 +119,42 @@ pub fn handle_move_tiles(level: &mut GameState::GameState) {
         //  self.draw_map(&self.map);
     }
 }
-pub fn handle_move_player(level: &mut GameState::GameState) -> bool {
-    if macroquad::is_key_down(KeyCode::Escape) {
+pub fn handle_move_player(level: &mut game_state::GameState) -> bool {
+    if is_key_down(KeyCode::Escape) {
         return true;
     }
 
-    if macroquad::is_key_pressed(KeyCode::Left) {
+    if is_key_pressed(KeyCode::Left) {
         level.move_player(Direction::Left);
     }
-    if macroquad::is_key_pressed(KeyCode::Right) {
+    if is_key_pressed(KeyCode::Right) {
         level.move_player(Direction::Right);
     }
 
-    if macroquad::is_key_pressed(KeyCode::Up) && !level.dragging {
+    if is_key_pressed(KeyCode::Up) && !level.dragging {
         level.move_player(Direction::Up);
     }
 
-    if macroquad::is_key_down(KeyCode::Space) {
+    if is_key_down(KeyCode::Space) {
         level.dragging = true;
     } else {
         level.dragging = false;
     }
 
-    if macroquad::is_key_pressed(KeyCode::Down) {
+    if is_key_pressed(KeyCode::Down) {
         level.move_player(Direction::Down);
     }
 
     false
 }
-pub async fn play_level(level: &mut GameState::GameState) {
-    loop {
-        clear_background(GRAY);
+pub async fn play_level(level: &mut game_state::GameState) {
+    let camera = Camera2D::from_display_rect(Rect::new(0., 0., screen_width(), screen_height()));
 
+    loop {
+        debug!("Screen: {},{}", screen_width(), screen_height());
+        set_camera(camera);
+
+        clear_background(GRAY);
 
         handle_move_player(level);
         handle_move_tiles(level);

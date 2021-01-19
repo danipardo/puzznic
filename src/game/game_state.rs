@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use macroquad::*;
-
 use super::*;
 
 pub struct GameState {
@@ -18,29 +16,31 @@ pub struct GameState {
 impl GameState {
     pub fn get_tile_texture_params(&self, c: char) -> DrawTextureParams {
         let offset = *self.tile_info.get(&c).unwrap() as f32;
+       // let ratio = screen_width() / screen_height();
         let params = DrawTextureParams {
-            dest_size: Some(Vec2::new(TILE_WIDTH as f32, TILE_HEIGHT as f32)),
-            source: Some(macroquad::Rect::new(
+            dest_size: Some(Vec2::new(TILE_WIDTH*3 as f32, TILE_HEIGHT*3 as f32  )),
+            source: Some(Rect::new(
                 offset,
                 0.,
                 TILE_WIDTH as f32,
                 TILE_HEIGHT as f32,
             )),
             rotation: 0.,
+            pivot: None,
         };
 
         params
     }
 
     // Returns the window coordinates of the coresponding tile position (x,y)
-    pub fn tile_to_coords(&self, x: usize, y: usize) -> (f32, f32) {
-        let x = screen_width() / 2. - self.dimensions.0 as f32 / 2. * TILE_WIDTH
-            + x as f32 * TILE_WIDTH;
-        let y = screen_height() / 2. - self.dimensions.1 as f32 / 2. * TILE_HEIGHT
-            + y as f32 * TILE_HEIGHT;
+    // pub fn tile_to_coords(&self, x: usize, y: usize) -> (f32, f32) {
+    //     let x = screen_width() / 2. - self.dimensions.0 as f32 / 2. * TILE_WIDTH
+    //         + x as f32 * TILE_WIDTH;
+    //     let y = screen_height() / 2. - self.dimensions.1 as f32 / 2. * TILE_HEIGHT
+    //         + y as f32 * TILE_HEIGHT;
 
-        (x, y)
-    }
+    //     (x, y)
+    // }
 
     pub fn get_tile_at(&self, x: usize, y: usize) -> &Tile {
         self.map
@@ -62,8 +62,8 @@ impl GameState {
             .unwrap();
 
         let lines = level.split("\n");
-        let mut start_x = screen_width() / 2. - *columns as f32 * TILE_WIDTH / 2. as f32;
-        let mut start_y = screen_height() / 2. - rows as f32 * TILE_HEIGHT / 2. as f32;
+        // let mut start_x = 0.0;
+        // let mut start_y = 0.0;
 
         for line in lines {
             for c in line.chars() {
@@ -82,24 +82,25 @@ impl GameState {
                 }
 
                 map.push(t);
-                start_x = start_x + TILE_WIDTH as f32;
+                // start_x = start_x + TILE_WIDTH as f32;
             }
-            start_y = start_y + TILE_HEIGHT as f32;
-            start_x = screen_width() / 2. - *columns as f32 * TILE_WIDTH / 2. as f32;
+            // start_y = start_y + TILE_HEIGHT as f32;
+            // start_x = 0.0;
         }
-
-        let texture_map = macroquad::load_texture("img/tiles.png").await;
+ 
+        let texture_map =  load_texture("img/tiles.png").await;
+        set_texture_filter(texture_map, FilterMode::Nearest);
 
         let mut tile_info = HashMap::new();
         tile_info.insert('G', 0u32);
-        tile_info.insert('X', 48u32);
-        tile_info.insert('E', 96u32);
-        tile_info.insert('B', 144u32);
-        tile_info.insert('P', 192u32);
-        tile_info.insert('C', 240u32);
-        tile_info.insert('D', 288u32);
-        tile_info.insert('?', 336u32);
-        tile_info.insert('-', 384u32);
+        tile_info.insert('X', 16u32);
+        tile_info.insert('E', 32u32);
+        tile_info.insert('B', 48u32);
+        tile_info.insert('P', 64u32);
+        tile_info.insert('C', 80u32);
+        tile_info.insert('D', 96u32);
+        tile_info.insert('?', 112u32);
+        tile_info.insert('-', 128u32);
 
         GameState {
             map,
