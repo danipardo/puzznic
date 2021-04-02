@@ -1,13 +1,9 @@
 pub(crate) mod game_state;
-
-use std::{collections::vec_deque, rc::Rc};
-
-use game_state::GameState;
 use macroquad::prelude::*;
 
 const TILE_WIDTH: f32 = 16f32;
 const TILE_HEIGHT: f32 = 16f32;
-const SPEED: f32 = 2.0;
+const SPEED: f32 = 1.0;
 
 #[derive(Debug)]
 pub struct Tile {
@@ -19,13 +15,21 @@ pub struct Tile {
     looping: bool,
 }
 
+pub enum TileChange {
+    Move,
+    Bounce,
+    Stop,
+    FadeOut(usize),
+    Copy(Tile),
+    VelocityUpdate(Vec2),
+}
 impl Default for Tile {
     fn default() -> Self {
         Tile {
             c: 'x',
             // slide_step: 0,
             position_changed: false,
-            position: Vec2::new(0., 0.),
+            position: Vec2::new(0., 0.), // 0..15 relative to the tile coordinates in the map
             velocity: Vec2::new(0., 0.),
             looping: false,
         }
@@ -37,15 +41,17 @@ impl Tile {
         Tile::default()
     }
 
-    pub fn handle_collision(&mut self, neighbors: Vec<&Tile>) {}
-    pub fn do_move(&mut self) -> bool {
-        if self.velocity == Vec2::zero() {
-            return false;
-        }
-        self.position = self.position + self.velocity;
-
-        debug!("Tile position: {}", self.position);
-        false
+    pub fn from(tile: &Tile) -> Tile {
+        return Tile {
+            position: tile.position,
+            velocity: tile.velocity,
+            c: tile.c,
+            position_changed: tile.position_changed,
+            looping: tile.looping,
+        };
+    }
+    pub fn is_static(&self) -> bool {
+        return self.c == 'x' || self.c == '-';
     }
 }
 
@@ -59,7 +65,6 @@ pub enum Direction {
     Right,
     Up,
     Down,
-    None,
 }
 pub fn handle_draw_player(level: &mut game_state::GameState) {
     // Draw player rectangle
@@ -85,7 +90,7 @@ pub fn handle_draw_map(level: &mut game_state::GameState) {
                     start_x + tile.position.x,
                     start_y + tile.position.y,
                     WHITE,
-                      level.get_tile_texture_params(tile.c),
+                    level.get_tile_texture_params(tile.c),
                 );
             }
             start_x = start_x + TILE_HEIGHT * 3.0 as f32;
@@ -97,8 +102,6 @@ pub fn handle_draw_map(level: &mut game_state::GameState) {
 }
 
 pub fn handle_move_tiles(level: &mut game_state::GameState) {
-  
-
     let changes = level.next_map(&level.map);
 
     for change in &changes {
@@ -107,9 +110,36 @@ pub fn handle_move_tiles(level: &mut game_state::GameState) {
             .get_mut(change.1 * level.dimensions.0 + change.0)
             .unwrap();
 
-        t.position = change.2.position;
-        t.velocity = change.2.velocity;
-    
+        let tile_change = &change.2;
+        match tile_change {
+            TileChange::Stop => {
+                println!("Stoping tile");
+                t.velocity = Vec2::new(0., 0.);
+            }
+            TileChange::Move => {
+                println!(
+                    "Moving, I'm at {},{}, ({},{})",
+                    change.0, change.1, t.position.x, t.position.y
+                );
+                t.position = t.position + t.velocity;
+            }
+            TileChange::Bounce => {
+                t.velocity = t.velocity * -1.;
+            }
+            TileChange::FadeOut(_) => {
+                println!("Fading out");
+            }
+            TileChange::Copy(new_tile) => {
+                t.position = new_tile.position;
+                t.velocity = new_tile.velocity;
+                t.c = new_tile.c;
+                t.position_changed = new_tile.position_changed;
+                t.looping = new_tile.looping;
+            }
+            TileChange::VelocityUpdate(vec2) => {
+                t.velocity = *vec2;
+            }
+        }
     }
 }
 pub fn handle_move_player(level: &mut game_state::GameState) -> bool {
@@ -137,6 +167,9 @@ pub fn handle_move_player(level: &mut game_state::GameState) -> bool {
     if is_key_pressed(KeyCode::Down) {
         level.move_player(Direction::Down);
     }
+    if is_key_pressed(KeyCode::Escape) {
+        return true;
+    }
 
     false
 }
@@ -144,12 +177,13 @@ pub async fn play_level(level: &mut game_state::GameState) {
     let camera = Camera2D::from_display_rect(Rect::new(0., 0., screen_width(), screen_height()));
 
     loop {
-        debug!("Screen: {},{}", screen_width(), screen_height());
         set_camera(camera);
 
         clear_background(GRAY);
 
-        handle_move_player(level);
+        if handle_move_player(level) {
+            break;
+        }
         handle_move_tiles(level);
 
         handle_draw_map(level);

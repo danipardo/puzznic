@@ -1,4 +1,4 @@
-use std::{borrow::BorrowMut, collections::HashMap, hint::unreachable_unchecked, rc::Rc};
+use std::collections::HashMap;
 
 use super::*;
 
@@ -65,7 +65,6 @@ impl GameState {
                 let mut t: Tile = Tile {
                     c,
                     position: Vec2::new(0., 0.),
-                    // slide_step: 0,
                     velocity: Vec2::new(0., 0.),
                     position_changed: false,
                     looping: false,
@@ -75,7 +74,6 @@ impl GameState {
                     t.velocity = Vec2::new(0., -SPEED);
                     t.looping = true
                 }
-
 
                 map.push(t);
                 // start_x = start_x + TILE_WIDTH as f32;
@@ -137,77 +135,209 @@ impl GameState {
                     new_y = new_y - 1;
                 }
             }
-            Direction::None => {}
             Direction::Down => new_y = usize::min(self.dimensions.1, new_y + 1),
         }
 
         let tile_underneath = self.get_tile_at(new_x, new_y).c;
+        let ux = self.get_tile_at(new_x, new_y).position.x;
+        let uy = self.get_tile_at(new_x, new_y).position.y;
         if tile_underneath == '-' {
             return;
         }
         if self.dragging {
-             let tile = self.map.get_mut(y * self.dimensions.0 + x).unwrap();
+            let tile = self.map.get_mut(y * self.dimensions.0 + x).unwrap();
             if tile.c != 'x' {
                 tile.velocity = velocity;
             }
         }
         self.player.position.0 = new_x;
         self.player.position.1 = new_y;
-        debug!("Player moved to {:?}", self.player.position);
+        debug!(
+            "Player moved to {:?}: {}, (x: {}, y: {})",
+            self.player.position, tile_underneath, ux, uy
+        );
     }
 
-    
+    pub fn check_collision(
+        &self,
+        x: usize,
+        y: usize,
+        tile: &Tile,
+        direction: Direction,
+    ) -> Option<&Tile> {
+        let map_width = self.dimensions.0;
+        let map_height = self.dimensions.1;
 
-    pub fn check_collision(&self, x1: usize, y1: usize, x2: usize, y2: usize) -> bool {
-        let _tile1 = self.map.get(y1 * self.dimensions.0 + x1).unwrap();
-        let tile2 = self.map.get(y2 * self.dimensions.0 + x2);
-
-        if tile2.is_none() {
-            return false;
+        match direction {
+            Direction::Up => {
+                if y > 0 {
+                    let t = self.get_tile_at(x, y - 1);
+                    if t.c != 'x' {
+                        return Some(&t);
+                    }
+                    if tile.position.x > 0. && x < map_width {
+                        // if its also in the next cell, check the right upper cell
+                        let t = self.get_tile_at(x + 1, y - 1);
+                        if t.c != 'x' {
+                            return Some(&t);
+                        }
+                    }
+                }
+            }
+            Direction::Down => {
+                if y < map_height {
+                    let t = self.get_tile_at(x, y + 1);
+                    if t.c != 'x' {
+                        return Some(&t);
+                    }
+                    if tile.position.x > 0. && x < map_width {
+                        // if its also in the next cell, check the right upper cell
+                        let t = self.get_tile_at(x + 1, y + 1);
+                        if t.c != 'x' {
+                            return Some(&t);
+                        }
+                    }
+                }
+            }
+            Direction::Left => {
+                println!(
+                    "Checking left at {},{} position ({},{})",
+                    x, y, tile.position.x, tile.position.y
+                );
+                if x > 0 && tile.position.x == 0. {
+                    let t = self.get_tile_at(x - 1, y);
+                    if t.c != 'x' {
+                        return Some(&t);
+                    }
+                    if tile.position.y > 0. && y < map_height {
+                        // if its also in the next cell, check the right upper cell
+                        let t = self.get_tile_at(x - 1, y + 1);
+                        if t.c != 'x' {
+                            return Some(&t);
+                        }
+                    }
+                }
+            }
+            Direction::Right => {
+                if x < map_width {
+                    let t = self.get_tile_at(x + 1, y);
+                    if t.c != 'x' {
+                        return Some(&t);
+                    }
+                    if tile.position.y > 0. && y < map_height {
+                        // if its also in the next cell, check the right upper cell
+                        let t = self.get_tile_at(x + 1, y + 1);
+                        if t.c != 'x' {
+                            return Some(&t);
+                        }
+                    }
+                }
+            }
         }
-        let _tile2 = tile2.unwrap();
 
-        false
+        None
     }
 
-    // Returns a tile index + a list of tile indexes that collide with it
-    pub fn get_collisions(&self) -> Vec<(usize, Vec<usize>)> {
-        vec![]
-    }
     /// Given a map, return all tiles that should change.
     /// That is, which cell (x,y) changes, and the Tile that should be placed there
-    pub fn next_map(&self, map: &Vec<Tile>) -> Vec<(usize, usize, Tile)> {
-        let changes: Vec<(usize, usize, Tile)> = vec![];
+    pub fn next_map(&self, map: &Vec<Tile>) -> Vec<(usize, usize, TileChange)> {
+        let mut changes: Vec<(usize, usize, TileChange)> = vec![];
 
         let map_width = self.dimensions.0;
         let map_height = self.dimensions.1;
 
         for y in 0..map_height {
             for x in 0..map_width {
-                let tile = map.get(y * map_width + x).unwrap();
-                // Changes should only trigger when the tile has finished the whole move transition
 
-                if tile.velocity == Vec2::new(0.0, 0.0) {
+                let mut falling_flag = false;
+                let tile = map.get(y * map_width + x).unwrap();
+                let mut collision_target = None;
+
+                if tile.is_static() {
                     continue;
                 }
 
+                if y < map_height && tile.position.x == 0. && self.get_tile_at(x, y + 1).c == 'x' {
+                    // If the tile can move, and there is nothing underneath,
+                    //  it should fall
+                    changes.push((x, y, TileChange::VelocityUpdate(Vec2::new(0., SPEED))));
+                    falling_flag = true;
+                }
+
+
                 // moving up?
                 if tile.velocity == Vec2::new(0., -SPEED) && y > 0 {
-                    let _collides = self.check_collision(x, y, x, y - 1);
-                    // new_y -= 1;
+                    collision_target = self.check_collision(x, y, &tile, Direction::Up);
                 }
                 // moving down?
                 if tile.velocity == Vec2::new(0., SPEED) && y < map_height {
-                    let _collides = self.check_collision(x, y, x, y + 1);
+                    collision_target = self.check_collision(x, y, &tile, Direction::Down);
+                    if collision_target.is_none() {
+                        if tile.position.y > TILE_WIDTH * 3. {
+                            let mut new_tile = Tile::from(&tile);
+                            new_tile.position.y = 0.;
+                            changes.push((x, y, TileChange::Copy(Tile::blank())));
+                            changes.push((x, y + 1, TileChange::Copy(new_tile)));
+                        } else {
+                            changes.push((x, y, TileChange::Move));
+                        }
+                    }
                 }
 
                 // moving left
                 if tile.velocity == Vec2::new(-SPEED, 0.) && x > 0 {
-                    let _collides = self.check_collision(x - 1, y, x, y);
+                    collision_target = self.check_collision(x, y, &tile, Direction::Left);
+
+                    if collision_target.is_none() {
+                        if tile.position.x == 0. && !falling_flag {
+                            let mut new_tile = Tile::from(&tile);
+                            new_tile.position.x = TILE_WIDTH * 3. - 1.;
+                            changes.push((x - 1, y, TileChange::Copy(new_tile)));
+                            changes.push((x, y, TileChange::Copy(Tile::blank())));
+                        } else {
+                            changes.push((x, y, TileChange::Move));
+                        }
+                    }
                 }
+
+                // moving right
                 if tile.velocity == Vec2::new(SPEED, 0.) && x < map_width {
-                    let _collides = self.check_collision(x + 1, y, x, y);
+                    collision_target = self.check_collision(x, y, &tile, Direction::Right);
+                    if collision_target.is_some() {
+                        println!("Collision with {:?}", &collision_target);
+                    }
+
+                    if collision_target.is_none() {
+                        if tile.position.x > TILE_WIDTH * 3. {
+                            let mut new_tile = Tile::from(&tile);
+                            new_tile.position.x = 0.;
+                            changes.push((x + 1, y, TileChange::Copy(new_tile)));
+                            changes.push((x, y, TileChange::Copy(Tile::blank())));
+                        } else {
+                            changes.push((x, y, TileChange::Move));
+                        }
+                    }
                 }
+                
+                if collision_target.is_some() {
+                    println!(
+                        "Collision at ({},{}) with {}",
+                        x,
+                        y,
+                        collision_target.unwrap().c
+                    );
+                    if tile.c == collision_target.unwrap().c {
+                        // if my tile is the same as the colliding one, fadeout
+                        changes.push((x, y, TileChange::FadeOut(1)));
+                    } else if tile.c == 'H' {
+                        // If I am a moving platform, bounce
+                        changes.push((x, y, TileChange::Bounce));
+                    } else {
+                        changes.push((x, y, TileChange::Stop));
+                    }
+                }
+
+
             }
         }
 
