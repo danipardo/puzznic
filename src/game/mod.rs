@@ -8,11 +8,12 @@ const SPEED: f32 = 1.0;
 #[derive(Debug)]
 pub struct Tile {
     pub c: char,
-    // slide_step: u32,
+    fade_step: u32,
     position: Vec2,
     velocity: Vec2,
     position_changed: bool,
     looping: bool,
+    dragging_direction: Option<Direction>
 }
 
 pub enum TileChange {
@@ -27,11 +28,12 @@ impl Default for Tile {
     fn default() -> Self {
         Tile {
             c: 'x',
-            // slide_step: 0,
+            fade_step: 0,
             position_changed: false,
             position: Vec2::new(0., 0.), // 0..15 relative to the tile coordinates in the map
             velocity: Vec2::new(0., 0.),
             looping: false,
+            dragging_direction: None,
         }
     }
 }
@@ -41,6 +43,10 @@ impl Tile {
         Tile::default()
     }
 
+    pub fn is_playable(&self) -> bool {
+        return self.c != 'x' && self.c != '-';
+    }
+
     pub fn from(tile: &Tile) -> Tile {
         return Tile {
             position: tile.position,
@@ -48,6 +54,8 @@ impl Tile {
             c: tile.c,
             position_changed: tile.position_changed,
             looping: tile.looping,
+            fade_step: 0,
+            dragging_direction: None
         };
     }
     pub fn is_static(&self) -> bool {
@@ -76,22 +84,28 @@ pub fn handle_draw_player(level: &mut game_state::GameState) {
     draw_rectangle_lines(x, y, TILE_WIDTH * 3.0, TILE_HEIGHT * 3.0, 3., RED);
 }
 
-pub fn handle_draw_map(level: &mut game_state::GameState) {
+pub fn handle_draw_map(level: &mut game_state::GameState) -> bool {
     let dimensions = level.dimensions;
     let mut start_x = 0.0;
     let mut start_y = 0.0;
 
+    let mut playable_pieces = 0;
     for y in 0..dimensions.1 {
         for x in 0..dimensions.0 {
             let tile = level.get_tile_at(x, y);
+            if tile.is_playable() {
+                playable_pieces += 1;
+            }
             if tile.c != 'x' {
-                draw_texture_ex(
-                    level.texture_map,
-                    start_x + tile.position.x,
-                    start_y + tile.position.y,
-                    WHITE,
-                    level.get_tile_texture_params(tile.c),
-                );
+                if tile.fade_step == 0 || tile.fade_step % 5 == 0 {
+                    draw_texture_ex(
+                        level.texture_map,
+                        start_x + tile.position.x,
+                        start_y + tile.position.y,
+                        WHITE,
+                        level.get_tile_texture_params(tile.c),
+                    );
+                }
             }
             start_x = start_x + TILE_HEIGHT * 3.0 as f32;
         }
@@ -99,6 +113,8 @@ pub fn handle_draw_map(level: &mut game_state::GameState) {
         start_x = 0.0;
         start_y = start_y + TILE_WIDTH * 3.0;
     }
+
+    playable_pieces == 0
 }
 
 pub fn handle_move_tiles(level: &mut game_state::GameState) {
@@ -127,7 +143,11 @@ pub fn handle_move_tiles(level: &mut game_state::GameState) {
                 t.velocity = t.velocity * -1.;
             }
             TileChange::FadeOut(_) => {
-                println!("Fading out");
+                t.fade_step = t.fade_step + 1;
+                if t.fade_step >= 50 {
+                    t.c = 'x';
+                    t.fade_step = 0;
+                }
             }
             TileChange::Copy(new_tile) => {
                 t.position = new_tile.position;
@@ -135,6 +155,7 @@ pub fn handle_move_tiles(level: &mut game_state::GameState) {
                 t.c = new_tile.c;
                 t.position_changed = new_tile.position_changed;
                 t.looping = new_tile.looping;
+                t.dragging_direction = None;
             }
             TileChange::VelocityUpdate(vec2) => {
                 t.velocity = *vec2;
@@ -186,7 +207,10 @@ pub async fn play_level(level: &mut game_state::GameState) {
         }
         handle_move_tiles(level);
 
-        handle_draw_map(level);
+        if handle_draw_map(level) {
+            println!("Level completed!");
+            break;
+        }
         handle_draw_player(level);
 
         next_frame().await;

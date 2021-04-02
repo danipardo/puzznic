@@ -6,19 +6,19 @@ async fn main() {
     // - - x x x x x -
     // - x x x x x E -
     // - x x x x G X -
-    // - C x x B P C -
-    // - E x G P C D -
-    // - G E B X D - -
+    // - x x x B P C -
+    // - x x G P C D -
+    // - x E B X D - -
     // - - - - - - - x";
 
         let level1 = 
        "x - - - - - - -
         - - x x x x x -
-        - x x x x G x -
-        - x x x x x X -
-        - x x x B P C -
-        - x x C P C D -
-        - E E C C C - -
+        - x x x x x x -
+        - x x x x x x -
+        - x x x x x x -
+        - x x x x x x -
+        - x E x x C - -
         - - - - - - - x";
 
     let level1 = level1.replace(" ", "");

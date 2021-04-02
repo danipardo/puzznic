@@ -37,6 +37,12 @@ impl GameState {
     //     (x, y)
     // }
 
+    pub fn get_tile_at_mut(&mut self, x: usize, y: usize) -> &mut Tile {
+        self.map
+            .get_mut(y * self.dimensions.0 + x)
+            .expect("Tile not found")
+    }
+
     pub fn get_tile_at(&self, x: usize, y: usize) -> &Tile {
         self.map
             .get(y * self.dimensions.0 + x)
@@ -68,6 +74,8 @@ impl GameState {
                     velocity: Vec2::new(0., 0.),
                     position_changed: false,
                     looping: false,
+                    fade_step: 0,
+                    dragging_direction: None,
                 };
 
                 if c == 'w' {
@@ -118,17 +126,14 @@ impl GameState {
         let mut new_y: usize = self.player.position.1;
 
         // let mut tile_state = TileState::NONE;
-        let mut velocity = Vec2::new(0., 0.);
         match direction {
             Direction::Left => {
                 if new_x > 0 {
                     new_x = new_x - 1;
-                    velocity = Vec2::new(-SPEED, 0.);
                 }
             }
             Direction::Right => {
                 new_x = usize::min(self.dimensions.0, new_x + 1);
-                velocity = Vec2::new(SPEED, 0.);
             }
             Direction::Up => {
                 if new_y > 0 {
@@ -141,20 +146,21 @@ impl GameState {
         let tile_underneath = self.get_tile_at(new_x, new_y).c;
         let ux = self.get_tile_at(new_x, new_y).position.x;
         let uy = self.get_tile_at(new_x, new_y).position.y;
+        let fade = self.get_tile_at(new_x, new_y).fade_step;
         if tile_underneath == '-' {
             return;
         }
         if self.dragging {
             let tile = self.map.get_mut(y * self.dimensions.0 + x).unwrap();
             if tile.c != 'x' {
-                tile.velocity = velocity;
+                tile.dragging_direction = Some(direction);
             }
         }
         self.player.position.0 = new_x;
         self.player.position.1 = new_y;
         debug!(
-            "Player moved to {:?}: {}, (x: {}, y: {})",
-            self.player.position, tile_underneath, ux, uy
+            "Player moved to {:?}: {}, (x: {}, y: {}) Fade: {}",
+            self.player.position, tile_underneath, ux, uy, fade
         );
     }
 
@@ -248,7 +254,6 @@ impl GameState {
 
         for y in 0..map_height {
             for x in 0..map_width {
-
                 let mut falling_flag = false;
                 let tile = map.get(y * map_width + x).unwrap();
                 let mut collision_target = None;
@@ -257,13 +262,83 @@ impl GameState {
                     continue;
                 }
 
+                if let Some(direction) = &tile.dragging_direction {
+                    match direction {
+                        Direction::Left => {
+                            let tile_on_left = self.get_tile_at(x - 1, y);
+                            if tile_on_left.c == 'x' {
+                                changes.push((x - 1, y, TileChange::Copy(Tile::from(&tile))));
+                                changes.push((x, y, TileChange::Copy(Tile::blank())))
+                            } else {
+                                // force drag stop
+                                changes.push((x, y, TileChange::Copy(Tile::from(&tile))));
+                            }
+                        }
+                        Direction::Right => {
+                            let tile_on_right = self.get_tile_at(x + 1, y);
+                            if tile_on_right.c == 'x' {
+                                changes.push((x + 1, y, TileChange::Copy(Tile::from(&tile))));
+                                changes.push((x, y, TileChange::Copy(Tile::blank())));
+                            } else {
+                                // force drag stop
+                                changes.push((x, y, TileChange::Copy(Tile::from(&tile))));
+                            }
+                        }
+                        Direction::Up => {}
+                        Direction::Down => {}
+                    }
+                }
+
                 if y < map_height && tile.position.x == 0. && self.get_tile_at(x, y + 1).c == 'x' {
                     // If the tile can move, and there is nothing underneath,
                     //  it should fall
                     changes.push((x, y, TileChange::VelocityUpdate(Vec2::new(0., SPEED))));
                     falling_flag = true;
                 }
+                if tile.position.x == 0. && tile.position.y == 0. && tile.fade_step > 0 {
+                    changes.push((x, y, TileChange::FadeOut(1)));
+                }
+                if tile.position.x == 0. && tile.position.y == 0. && tile.fade_step == 0 {
+                    // Whatever the tile is doing, we have to check in all 4 directions
+                    // for matches
 
+                    if y < map_height
+                        && self.get_tile_at(x, y + 1).c == tile.c
+                        && self.get_tile_at(x, y + 1).position.x == 0.
+                        && self.get_tile_at(x, y + 1).position.y == 0.
+                    {
+                        changes.push((x, y, TileChange::Stop));
+                        changes.push((x, y, TileChange::FadeOut(1)));
+                        continue;
+                    }
+                    if y > 0
+                        && self.get_tile_at(x, y - 1).c == tile.c
+                        && self.get_tile_at(x, y - 1).position.x == 0.
+                        && self.get_tile_at(x, y - 1).position.y == 0.
+                    {
+                        changes.push((x, y, TileChange::Stop));
+                        changes.push((x, y, TileChange::FadeOut(1)));
+                        continue;
+                    }
+                    if x < map_width
+                        && self.get_tile_at(x + 1, y).c == tile.c
+                        && self.get_tile_at(x + 1, y).position.x == 0.
+                        && self.get_tile_at(x + 1, y).position.y == 0.
+                    {
+                        changes.push((x, y, TileChange::Stop));
+                        changes.push((x, y, TileChange::FadeOut(1)));
+                        continue;
+                    }
+                    if x > 0
+                        && self.get_tile_at(x - 1, y).c == tile.c
+                        && self.get_tile_at(x - 1, y).position.x == 0.
+                        && self.get_tile_at(x - 1, y).position.y == 0.
+                    {
+                        changes.push((x, y, TileChange::Stop));
+                        changes.push((x, y, TileChange::FadeOut(1)));
+                        continue;
+                    }
+                }
 
                 // moving up?
                 if tile.velocity == Vec2::new(0., -SPEED) && y > 0 {
@@ -318,7 +393,7 @@ impl GameState {
                         }
                     }
                 }
-                
+
                 if collision_target.is_some() {
                     println!(
                         "Collision at ({},{}) with {}",
@@ -336,8 +411,6 @@ impl GameState {
                         changes.push((x, y, TileChange::Stop));
                     }
                 }
-
-
             }
         }
 
