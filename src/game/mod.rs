@@ -3,7 +3,7 @@ use macroquad::prelude::*;
 
 const TILE_WIDTH: f32 = 16f32;
 const TILE_HEIGHT: f32 = 16f32;
-const SPEED: f32 = 1.0;
+const SPEED: f32 = 3.0;
 
 #[derive(Debug)]
 pub struct Tile {
