@@ -6,9 +6,9 @@ async fn main() {
     - - x x x x x -
     - x x x x x E -
     - x x x x G X -
-    - x x x B P C -
-    - x x G P C D -
-    - x E B X D - -
+    - C x x B P C -
+    - E x G P C D -
+    - G E B X D - -
     - - - - - - - x";
     //     let level1 = 
     //    "x - - - - - - -
@@ -27,14 +27,7 @@ async fn main() {
 
     game::play_level(&mut tilemap).await;
    
-    // for x in tilemap.map{
-    //     for title in x {
-    //       let c = title.c;
-    //      print!("{}", c);
-    //   }
-    //    println!("");
-    //}
-}
+ }
 
 #[cfg(test)]
 mod tests {

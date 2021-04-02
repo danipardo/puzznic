@@ -1,5 +1,8 @@
- pub(crate) mod game_state;
+pub(crate) mod game_state;
 
+use std::{collections::vec_deque, rc::Rc};
+
+use game_state::GameState;
 use macroquad::prelude::*;
 
 const TILE_WIDTH: f32 = 16f32;
@@ -34,6 +37,7 @@ impl Tile {
         Tile::default()
     }
 
+    pub fn handle_collision(&mut self, neighbors: Vec<&Tile>) {}
     pub fn do_move(&mut self) -> bool {
         if self.velocity == Vec2::zero() {
             return false;
@@ -81,7 +85,7 @@ pub fn handle_draw_map(level: &mut game_state::GameState) {
                     start_x + tile.position.x,
                     start_y + tile.position.y,
                     WHITE,
-                    level.get_tile_texture_params(tile.c),
+                      level.get_tile_texture_params(tile.c),
                 );
             }
             start_x = start_x + TILE_HEIGHT * 3.0 as f32;
@@ -93,12 +97,7 @@ pub fn handle_draw_map(level: &mut game_state::GameState) {
 }
 
 pub fn handle_move_tiles(level: &mut game_state::GameState) {
-    for y in 0..level.dimensions.0 {
-        for x in 0..level.dimensions.1 {
-            let tile = level.map.get_mut(y * level.dimensions.0 + x).unwrap();
-            let _changed_cell = tile.do_move();
-        }
-    }
+  
 
     let changes = level.next_map(&level.map);
 
@@ -110,13 +109,7 @@ pub fn handle_move_tiles(level: &mut game_state::GameState) {
 
         t.position = change.2.position;
         t.velocity = change.2.velocity;
-        t.c = change.2.c;
-        // t.slide_step = change.2.slide_step;
-        t.looping = change.2.looping;
-        t.position_changed = change.2.position_changed;
-    }
-    if changes.len() > 0 {
-        //  self.draw_map(&self.map);
+    
     }
 }
 pub fn handle_move_player(level: &mut game_state::GameState) -> bool {

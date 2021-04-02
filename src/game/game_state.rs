@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{borrow::BorrowMut, collections::HashMap, hint::unreachable_unchecked, rc::Rc};
 
 use super::*;
 
@@ -16,15 +16,10 @@ pub struct GameState {
 impl GameState {
     pub fn get_tile_texture_params(&self, c: char) -> DrawTextureParams {
         let offset = *self.tile_info.get(&c).unwrap() as f32;
-       // let ratio = screen_width() / screen_height();
+        // let ratio = screen_width() / screen_height();
         let params = DrawTextureParams {
-            dest_size: Some(Vec2::new(TILE_WIDTH*3 as f32, TILE_HEIGHT*3 as f32  )),
-            source: Some(Rect::new(
-                offset,
-                0.,
-                TILE_WIDTH as f32,
-                TILE_HEIGHT as f32,
-            )),
+            dest_size: Some(Vec2::new(TILE_WIDTH * 3 as f32, TILE_HEIGHT * 3 as f32)),
+            source: Some(Rect::new(offset, 0., TILE_WIDTH as f32, TILE_HEIGHT as f32)),
             rotation: 0.,
             pivot: None,
         };
@@ -81,14 +76,15 @@ impl GameState {
                     t.looping = true
                 }
 
+
                 map.push(t);
                 // start_x = start_x + TILE_WIDTH as f32;
             }
             // start_y = start_y + TILE_HEIGHT as f32;
             // start_x = 0.0;
         }
- 
-        let texture_map =  load_texture("img/tiles.png").await;
+
+        let texture_map = load_texture("img/tiles.png").await;
         set_texture_filter(texture_map, FilterMode::Nearest);
 
         let mut tile_info = HashMap::new();
@@ -150,7 +146,7 @@ impl GameState {
             return;
         }
         if self.dragging {
-            let tile = self.map.get_mut(y * self.dimensions.0 + x).unwrap();
+             let tile = self.map.get_mut(y * self.dimensions.0 + x).unwrap();
             if tile.c != 'x' {
                 tile.velocity = velocity;
             }
@@ -160,26 +156,28 @@ impl GameState {
         debug!("Player moved to {:?}", self.player.position);
     }
 
-    /// For each tile, check if it collides with any other tile
-    /// Also, if there's nothing beneath, it should fall
+    
 
-    // pub fn draw_map(&self, map: &Vec<Tile>) {
-    //     let map_width = self.dimensions.0;
-    //     let map_height = self.dimensions.1;
+    pub fn check_collision(&self, x1: usize, y1: usize, x2: usize, y2: usize) -> bool {
+        let _tile1 = self.map.get(y1 * self.dimensions.0 + x1).unwrap();
+        let tile2 = self.map.get(y2 * self.dimensions.0 + x2);
 
-    //     for y in 0..map_height {
-    //         for x in 0..map_width {
-    //             let tile = map.get(y * map_width + x).unwrap();
-    //             print!("{}", tile.c)
-    //         }
-    //         println!();
-    //     }
-    // }
+        if tile2.is_none() {
+            return false;
+        }
+        let _tile2 = tile2.unwrap();
 
+        false
+    }
+
+    // Returns a tile index + a list of tile indexes that collide with it
+    pub fn get_collisions(&self) -> Vec<(usize, Vec<usize>)> {
+        vec![]
+    }
     /// Given a map, return all tiles that should change.
     /// That is, which cell (x,y) changes, and the Tile that should be placed there
     pub fn next_map(&self, map: &Vec<Tile>) -> Vec<(usize, usize, Tile)> {
-        let mut changes: Vec<(usize, usize, Tile)> = vec![];
+        let changes: Vec<(usize, usize, Tile)> = vec![];
 
         let map_width = self.dimensions.0;
         let map_height = self.dimensions.1;
@@ -189,75 +187,26 @@ impl GameState {
                 let tile = map.get(y * map_width + x).unwrap();
                 // Changes should only trigger when the tile has finished the whole move transition
 
-                if tile.c == 'x' || tile.c == '-' {
+                if tile.velocity == Vec2::new(0.0, 0.0) {
                     continue;
                 }
 
-                if tile.position_changed {
-                    let mut new_x = x;
-                    let mut new_y = y;
-                    let mut adj_x = x;
-                    let mut adj_y = y;
-
-                    // moving up?
-                    if tile.velocity == Vec2::new(0., -SPEED) && y > 0 {
-                        new_y -= 1;
-                        adj_y = new_y - 1;
-                    }
-                    // moving down?
-                    if tile.velocity == Vec2::new(0., SPEED) && y < map_height {
-                        new_y += 1;
-                        adj_y = new_y + 1;
-                    }
-
-                    // moving left
-                    if tile.velocity == Vec2::new(-SPEED, 0.) && x > 0 {
-                        new_x -= 1;
-                        adj_x = new_x - 1;
-                    }
-                    if tile.velocity == Vec2::new(SPEED, 0.) && x < map_width {
-                        new_x += 1;
-                        adj_x = new_x + 1;
-                    }
-
-                    let adjacent_tile = map.get(adj_y * map_width + adj_x).unwrap();
-
-                    debug!("Tile {} moved to {},{}", tile.c, new_x, new_y);
-                    if new_x != x || new_y != y {
-                        let mut new_tile = Tile {
-                            c: tile.c,
-                            position_changed: false,
-                            looping: tile.looping,
-                            ..Default::default()
-                        };
-
-                        if tile.looping && adjacent_tile.c != 'x' {
-                            new_tile.velocity = tile.velocity * -1.;
-                        } else if adjacent_tile.c == 'x' {
-                            new_tile.velocity = tile.velocity;
-                        }
-                        if !tile.looping {
-                            new_tile.velocity = Vec2::new(0., 0.);
-                        }
-                        changes.push((new_x, new_y, new_tile));
-                        changes.push((x, y, Tile::blank()));
-                    }
-                    continue;
+                // moving up?
+                if tile.velocity == Vec2::new(0., -SPEED) && y > 0 {
+                    let _collides = self.check_collision(x, y, x, y - 1);
+                    // new_y -= 1;
                 }
-                if tile.looping == false {
-                    // Check if the tile has to fall
-                    let underneath = map.get((y + 1) * map_width + x);
+                // moving down?
+                if tile.velocity == Vec2::new(0., SPEED) && y < map_height {
+                    let _collides = self.check_collision(x, y, x, y + 1);
+                }
 
-                    if underneath.is_some() && underneath.unwrap().c == 'x' {
-                        let new_tile = Tile {
-                            c: tile.c,
-                            velocity: Vec2::new(0., SPEED),
-                            position: tile.position,
-                            // slide_step: tile.slide_step,
-                            ..Default::default()
-                        };
-                        changes.push((x, y, new_tile));
-                    }
+                // moving left
+                if tile.velocity == Vec2::new(-SPEED, 0.) && x > 0 {
+                    let _collides = self.check_collision(x - 1, y, x, y);
+                }
+                if tile.velocity == Vec2::new(SPEED, 0.) && x < map_width {
+                    let _collides = self.check_collision(x + 1, y, x, y);
                 }
             }
         }
