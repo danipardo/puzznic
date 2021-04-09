@@ -1,4 +1,4 @@
-use quad_snd::mixer::Volume;
+
 use quad_snd::{
     decoder::{read_ogg, read_wav_ext},
     mixer::{PlaybackStyle, SoundMixer},

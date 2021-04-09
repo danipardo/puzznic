@@ -120,7 +120,7 @@ pub fn handle_draw_map(level: &mut game_state::GameState) -> bool {
     playable_pieces == 0
 }
 
-pub fn handle_move_tiles(level: &mut game_state::GameState, mixer: &mut Mixer) {
+pub fn handle_move_tiles(level: &mut game_state::GameState, _mixer: &mut Mixer) {
     let changes = level.next_map(&level.map);
 
     for change in &changes {
