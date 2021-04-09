@@ -15,7 +15,7 @@ pub struct GameState {
 
 impl GameState {
     pub fn get_tile_texture_params(&self, c: char) -> DrawTextureParams {
-        let offset = *self.tile_info.get(&c).unwrap() as f32;
+        let offset = *self.tile_info.get(&c).expect(format!("cannot find tile {}", c).as_str()) as f32;
         // let ratio = screen_width() / screen_height();
         let params = DrawTextureParams {
             dest_size: Some(Vec2::new(TILE_WIDTH * 3 as f32, TILE_HEIGHT * 3 as f32)),
@@ -102,6 +102,7 @@ impl GameState {
         tile_info.insert('C', 80u32);
         tile_info.insert('D', 96u32);
         tile_info.insert('?', 112u32);
+        tile_info.insert('~', 112u32);
         tile_info.insert('-', 128u32);
 
         GameState {
@@ -118,13 +119,14 @@ impl GameState {
         }
     }
 
-    pub fn move_player(&mut self, direction: Direction) {
+    pub fn move_player(&mut self, direction: Direction, mixer: &mut Mixer) {
         let x: usize = self.player.position.0;
         let y: usize = self.player.position.1;
 
         let mut new_x: usize = self.player.position.0;
         let mut new_y: usize = self.player.position.1;
 
+        mixer.play_sound(sound::Sound::MOVE);
         // let mut tile_state = TileState::NONE;
         match direction {
             Direction::Left => {

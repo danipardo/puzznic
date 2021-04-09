@@ -1,5 +1,8 @@
 pub(crate) mod game_state;
+pub(crate) mod sound;
 use macroquad::prelude::*;
+
+use self::sound::Mixer;
 
 const TILE_WIDTH: f32 = 16f32;
 const TILE_HEIGHT: f32 = 16f32;
@@ -117,7 +120,7 @@ pub fn handle_draw_map(level: &mut game_state::GameState) -> bool {
     playable_pieces == 0
 }
 
-pub fn handle_move_tiles(level: &mut game_state::GameState) {
+pub fn handle_move_tiles(level: &mut game_state::GameState, mixer: &mut Mixer) {
     let changes = level.next_map(&level.map);
 
     for change in &changes {
@@ -163,20 +166,20 @@ pub fn handle_move_tiles(level: &mut game_state::GameState) {
         }
     }
 }
-pub fn handle_move_player(level: &mut game_state::GameState) -> bool {
+pub fn handle_move_player(level: &mut game_state::GameState, mixer: &mut Mixer) -> bool {
     if is_key_down(KeyCode::Escape) {
         return true;
     }
 
     if is_key_pressed(KeyCode::Left) {
-        level.move_player(Direction::Left);
+        level.move_player(Direction::Left, mixer);
     }
     if is_key_pressed(KeyCode::Right) {
-        level.move_player(Direction::Right);
+        level.move_player(Direction::Right, mixer);
     }
 
     if is_key_pressed(KeyCode::Up) && !level.dragging {
-        level.move_player(Direction::Up);
+        level.move_player(Direction::Up, mixer);
     }
 
     if is_key_down(KeyCode::Space) {
@@ -186,7 +189,7 @@ pub fn handle_move_player(level: &mut game_state::GameState) -> bool {
     }
 
     if is_key_pressed(KeyCode::Down) {
-        level.move_player(Direction::Down);
+        level.move_player(Direction::Down, mixer);
     }
     if is_key_pressed(KeyCode::Escape) {
         return true;
@@ -197,15 +200,20 @@ pub fn handle_move_player(level: &mut game_state::GameState) -> bool {
 pub async fn play_level(level: &mut game_state::GameState) {
     let camera = Camera2D::from_display_rect(Rect::new(0., 0., screen_width(), screen_height()));
 
+
+    let mut  mixer = sound::Mixer::new();
+    mixer.play_sound(sound::Sound::LevelIntro);
+
+
     loop {
         set_camera(camera);
 
         clear_background(GRAY);
 
-        if handle_move_player(level) {
+        if handle_move_player(level, &mut mixer) {
             break;
         }
-        handle_move_tiles(level);
+        handle_move_tiles(level, &mut mixer);
 
         if handle_draw_map(level) {
             println!("Level completed!");
