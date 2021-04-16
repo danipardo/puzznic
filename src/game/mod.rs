@@ -143,10 +143,10 @@ pub fn handle_move_tiles(level: &mut game_state::GameState, _mixer: &mut Mixer) 
                 t.velocity = Vec2::new(0., 0.);
             }
             TileChange::Move => {
-                println!(
-                    "Moving, I'm at {},{}, ({},{})",
-                    change.0, change.1, t.position.x, t.position.y
-                );
+                // println!(
+                //     "Moving, I'm at {},{}, ({},{})",
+                //     change.0, change.1, t.position.x, t.position.y
+                // );
                 t.position = t.position + t.velocity;
             }
             TileChange::Bounce => {

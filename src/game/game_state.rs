@@ -129,7 +129,7 @@ impl GameState {
         let mut new_x: usize = self.player.position.0;
         let mut new_y: usize = self.player.position.1;
 
-        mixer.play_sound(sound::Sound::MOVE);
+       // mixer.play_sound(sound::Sound::MOVE);
         // let mut tile_state = TileState::NONE;
         match direction {
             Direction::Left => {
@@ -138,23 +138,21 @@ impl GameState {
                 }
             }
             Direction::Right => {
-                new_x = usize::min(self.dimensions.0, new_x + 1);
+                new_x = usize::min(self.dimensions.0-1, new_x + 1);
             }
             Direction::Up => {
                 if new_y > 0 {
                     new_y = new_y - 1;
                 }
             }
-            Direction::Down => new_y = usize::min(self.dimensions.1, new_y + 1),
+            Direction::Down => new_y = usize::min(self.dimensions.1-1, new_y + 1),
         }
 
         let tile_underneath = self.get_tile_at(new_x, new_y).c;
         let ux = self.get_tile_at(new_x, new_y).position.x;
         let uy = self.get_tile_at(new_x, new_y).position.y;
         let fade = self.get_tile_at(new_x, new_y).fade_step;
-        if tile_underneath == '-' {
-            return;
-        }
+
         if self.dragging {
             let tile = self.map.get_mut(y * self.dimensions.0 + x).unwrap();
             if tile.c != ' ' {
@@ -267,6 +265,11 @@ impl GameState {
                     continue;
                 }
 
+                if tile.c == '|'{
+                    debug!("");
+                }
+                 
+
                 if let Some(direction) = &tile.dragging_direction {
                     match direction {
                         Direction::Left => {
@@ -294,7 +297,7 @@ impl GameState {
                     }
                 }
 
-                if y < map_height && tile.position.x == 0. && self.get_tile_at(x, y + 1).c == ' ' {
+                if tile.looping==false &&  y < map_height && tile.position.x == 0. && self.get_tile_at(x, y + 1).c == ' ' {
                     // If the tile can move, and there is nothing underneath,
                     //  it should fall
                     changes.push((x, y, TileChange::VelocityUpdate(Vec2::new(0., SPEED))));
@@ -348,6 +351,18 @@ impl GameState {
                 // moving up?
                 if tile.velocity == Vec2::new(0., -SPEED) && y > 0 {
                     collision_target = self.check_collision(x, y, &tile, Direction::Up);
+                    if collision_target.is_none() {
+                        if tile.position.y ==  TILE_WIDTH * -3. {
+                            let mut new_tile = Tile::from(&tile);
+                            new_tile.position.y = 0.;
+                            changes.push((x, y, TileChange::Copy(Tile::blank())));
+                            changes.push((x, y - 1, TileChange::Copy(new_tile)));
+                        } else {
+                            changes.push((x, y, TileChange::Move));
+                        }
+                    } else {
+                        println!("Moving up and collided!");
+                    }
                 }
                 // moving down?
                 if tile.velocity == Vec2::new(0., SPEED) && y < map_height {
@@ -409,7 +424,7 @@ impl GameState {
                     if tile.c == collision_target.unwrap().c {
                         // if my tile is the same as the colliding one, fadeout
                         changes.push((x, y, TileChange::FadeOut(1)));
-                    } else if tile.c == 'H' {
+                    } else if tile.looping {
                         // If I am a moving platform, bounce
                         changes.push((x, y, TileChange::Bounce));
                     } else {
