@@ -1,5 +1,7 @@
 pub(crate) mod game_state;
 pub(crate) mod sound;
+pub mod levels;
+
 use macroquad::prelude::*;
 
 use self::sound::Mixer;
@@ -30,7 +32,7 @@ pub enum TileChange {
 impl Default for Tile {
     fn default() -> Self {
         Tile {
-            c: 'x',
+            c: ' ',
             fade_step: 0,
             position_changed: false,
             position: Vec2::new(0., 0.), // 0..15 relative to the tile coordinates in the map
@@ -45,9 +47,14 @@ impl Tile {
     pub fn blank() -> Tile {
         Tile::default()
     }
+    pub fn new(c: char) -> Tile{
+        let mut t = Tile::default();
+        t.c = c;
+        return t;
+    }
 
     pub fn is_playable(&self) -> bool {
-        return self.c != 'x' && self.c != '-';
+        return self.c != ' ' && self.c != '-';
     }
 
     pub fn from(tile: &Tile) -> Tile {
@@ -62,7 +69,7 @@ impl Tile {
         };
     }
     pub fn is_static(&self) -> bool {
-        return self.c == 'x' || self.c == '-';
+        return self.c == ' ' || self.c == '-';
     }
 }
 
@@ -99,7 +106,7 @@ pub fn handle_draw_map(level: &mut game_state::GameState) -> bool {
             if tile.is_playable() {
                 playable_pieces += 1;
             }
-            if tile.c != 'x' {
+            if tile.c != ' ' {
                 if tile.fade_step == 0 || tile.fade_step % 5 == 0 {
                     draw_texture_ex(
                         level.texture_map,
@@ -148,7 +155,7 @@ pub fn handle_move_tiles(level: &mut game_state::GameState, _mixer: &mut Mixer) 
             TileChange::FadeOut(_) => {
                 t.fade_step = t.fade_step + 1;
                 if t.fade_step >= 50 {
-                    t.c = 'x';
+                    t.c = ' ';
                     t.fade_step = 0;
                 }
             }

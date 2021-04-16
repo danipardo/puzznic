@@ -15,7 +15,10 @@ pub struct GameState {
 
 impl GameState {
     pub fn get_tile_texture_params(&self, c: char) -> DrawTextureParams {
-        let offset = *self.tile_info.get(&c).expect(format!("cannot find tile {}", c).as_str()) as f32;
+        let offset = *self
+            .tile_info
+            .get(&c)
+            .expect(format!("cannot find tile {}", c).as_str()) as f32;
         // let ratio = screen_width() / screen_height();
         let params = DrawTextureParams {
             dest_size: Some(Vec2::new(TILE_WIDTH * 3 as f32, TILE_HEIGHT * 3 as f32)),
@@ -27,16 +30,6 @@ impl GameState {
         params
     }
 
-    // Returns the window coordinates of the coresponding tile position (x,y)
-    // pub fn tile_to_coords(&self, x: usize, y: usize) -> (f32, f32) {
-    //     let x = screen_width() / 2. - self.dimensions.0 as f32 / 2. * TILE_WIDTH
-    //         + x as f32 * TILE_WIDTH;
-    //     let y = screen_height() / 2. - self.dimensions.1 as f32 / 2. * TILE_HEIGHT
-    //         + y as f32 * TILE_HEIGHT;
-
-    //     (x, y)
-    // }
-
     pub fn get_tile_at_mut(&mut self, x: usize, y: usize) -> &mut Tile {
         self.map
             .get_mut(y * self.dimensions.0 + x)
@@ -44,51 +37,62 @@ impl GameState {
     }
 
     pub fn get_tile_at(&self, x: usize, y: usize) -> &Tile {
-        self.map
-            .get(y * self.dimensions.0 + x)
-            .expect("Tile not found")
+        self.map.get(y * self.dimensions.0 + x).expect(
+            format!(
+                "Tile not found at {},{} ({})",
+                x,
+                y,
+                y * self.dimensions.0 + x
+            )
+            .as_str(),
+        )
     }
 
-    pub async fn new(level: &String) -> Self {
-        let mut map: Vec<Tile> = vec![];
+    pub async fn set_level(&mut self, map: Vec<Tile>, width: usize, height: usize) {
+        self.map = map;
+        self.dimensions = (width, height);
+        self.player.position = (width / 2 - 1, height / 2)
+    }
+    pub async fn new() -> Self {
+        //  let mut map: Vec<Tile> = vec![];
 
-        let lines = level.split("\n");
+        //  let lines = level.split("\n");
 
-        let rows: usize = lines.count();
-        let columns = &level
-            .split("\n")
-            .into_iter()
-            .map(|e| e.chars().count())
-            .max()
-            .unwrap();
+        // let rows: usize = lines.count();
+        // let columns = &level
+        //     .split("\n")
+        //     .into_iter()
+        //     .map(|e| e.chars().count())
+        //     .max()
+        //     .unwrap();
 
-        let lines = level.split("\n");
+        // let lines = level.split("\n");
         // let mut start_x = 0.0;
         // let mut start_y = 0.0;
 
-        for line in lines {
-            for c in line.chars() {
-                let mut t: Tile = Tile {
-                    c,
-                    position: Vec2::new(0., 0.),
-                    velocity: Vec2::new(0., 0.),
-                    position_changed: false,
-                    looping: false,
-                    fade_step: 0,
-                    dragging_direction: None,
-                };
+        // for line in lines {
+        //     for c in line.chars() {
+        //         let mut t: Tile = Tile {
+        //             c,
+        //             position: Vec2::new(0., 0.),
+        //             velocity: Vec2::new(0., 0.),
+        //             position_changed: false,
+        //             looping: false,
+        //             fade_step: 0,
+        //             dragging_direction: None,
+        //         };
 
-                if c == 'w' {
-                    t.velocity = Vec2::new(0., -SPEED);
-                    t.looping = true
-                }
+        //         if c == 'w' {
+        //             t.velocity = Vec2::new(0., -SPEED);
+        //             t.looping = true
+        //         }
 
-                map.push(t);
-                // start_x = start_x + TILE_WIDTH as f32;
-            }
-            // start_y = start_y + TILE_HEIGHT as f32;
-            // start_x = 0.0;
-        }
+        //         map.push(t);
+        //         // start_x = start_x + TILE_WIDTH as f32;
+        //     }
+        //     // start_y = start_y + TILE_HEIGHT as f32;
+        //     // start_x = 0.0;
+        // }
 
         let texture_map = load_texture("img/tiles.png").await;
         set_texture_filter(texture_map, FilterMode::Nearest);
@@ -103,16 +107,15 @@ impl GameState {
         tile_info.insert('D', 96u32);
         tile_info.insert('?', 112u32);
         tile_info.insert('~', 112u32);
+        tile_info.insert('|', 112u32);
         tile_info.insert('-', 128u32);
 
         GameState {
-            map,
+            map: vec![],
             texture_map,
             tile_info,
-            player: Player {
-                position: (columns / 2, rows / 2),
-            },
-            dimensions: (*columns, rows),
+            player: Player { position: (0, 0) },
+            dimensions: (0, 0),
             dragging: false,
             score: 0,
             time_elpsed: 0,
@@ -154,7 +157,7 @@ impl GameState {
         }
         if self.dragging {
             let tile = self.map.get_mut(y * self.dimensions.0 + x).unwrap();
-            if tile.c != 'x' {
+            if tile.c != ' ' {
                 tile.dragging_direction = Some(direction);
             }
         }
@@ -180,13 +183,13 @@ impl GameState {
             Direction::Up => {
                 if y > 0 {
                     let t = self.get_tile_at(x, y - 1);
-                    if t.c != 'x' {
+                    if t.c != ' ' {
                         return Some(&t);
                     }
                     if tile.position.x > 0. && x < map_width {
                         // if its also in the next cell, check the right upper cell
                         let t = self.get_tile_at(x + 1, y - 1);
-                        if t.c != 'x' {
+                        if t.c != ' ' {
                             return Some(&t);
                         }
                     }
@@ -195,13 +198,13 @@ impl GameState {
             Direction::Down => {
                 if y < map_height {
                     let t = self.get_tile_at(x, y + 1);
-                    if t.c != 'x' {
+                    if t.c != ' ' {
                         return Some(&t);
                     }
                     if tile.position.x > 0. && x < map_width {
                         // if its also in the next cell, check the right upper cell
                         let t = self.get_tile_at(x + 1, y + 1);
-                        if t.c != 'x' {
+                        if t.c != ' ' {
                             return Some(&t);
                         }
                     }
@@ -214,13 +217,13 @@ impl GameState {
                 );
                 if x > 0 && tile.position.x == 0. {
                     let t = self.get_tile_at(x - 1, y);
-                    if t.c != 'x' {
+                    if t.c != ' ' {
                         return Some(&t);
                     }
                     if tile.position.y > 0. && y < map_height {
                         // if its also in the next cell, check the right upper cell
                         let t = self.get_tile_at(x - 1, y + 1);
-                        if t.c != 'x' {
+                        if t.c != ' ' {
                             return Some(&t);
                         }
                     }
@@ -229,13 +232,13 @@ impl GameState {
             Direction::Right => {
                 if x < map_width {
                     let t = self.get_tile_at(x + 1, y);
-                    if t.c != 'x' {
+                    if t.c != ' ' {
                         return Some(&t);
                     }
                     if tile.position.y > 0. && y < map_height {
                         // if its also in the next cell, check the right upper cell
                         let t = self.get_tile_at(x + 1, y + 1);
-                        if t.c != 'x' {
+                        if t.c != ' ' {
                             return Some(&t);
                         }
                     }
@@ -268,7 +271,7 @@ impl GameState {
                     match direction {
                         Direction::Left => {
                             let tile_on_left = self.get_tile_at(x - 1, y);
-                            if tile_on_left.c == 'x' {
+                            if tile_on_left.c == ' ' {
                                 changes.push((x - 1, y, TileChange::Copy(Tile::from(&tile))));
                                 changes.push((x, y, TileChange::Copy(Tile::blank())))
                             } else {
@@ -278,7 +281,7 @@ impl GameState {
                         }
                         Direction::Right => {
                             let tile_on_right = self.get_tile_at(x + 1, y);
-                            if tile_on_right.c == 'x' {
+                            if tile_on_right.c == ' ' {
                                 changes.push((x + 1, y, TileChange::Copy(Tile::from(&tile))));
                                 changes.push((x, y, TileChange::Copy(Tile::blank())));
                             } else {
@@ -291,7 +294,7 @@ impl GameState {
                     }
                 }
 
-                if y < map_height && tile.position.x == 0. && self.get_tile_at(x, y + 1).c == 'x' {
+                if y < map_height && tile.position.x == 0. && self.get_tile_at(x, y + 1).c == ' ' {
                     // If the tile can move, and there is nothing underneath,
                     //  it should fall
                     changes.push((x, y, TileChange::VelocityUpdate(Vec2::new(0., SPEED))));

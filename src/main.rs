@@ -1,48 +1,21 @@
+use game::levels;
 pub mod game;
 
 #[macroquad::main("Puzznic")]
 async fn main() {
-    let level1 = "x - - - - - - -
-    - - x x x x x -
-    - x x x x x E -
-    - x x x x G X -
-    - x x x B P C -
-    - x x G P C D -
-    - x E B X D - -
-    - - - - - - - x";
 
-"    - - - -
-    -   -   E -
-  - E - -   G -
-  - G     E - -
-- - - - -   -
-- G -   - - -
-- B ~     G -
-- - - B - - -
-- - - - -";
-    //     let level1 = 
-    //    "x - - - - - - -
-    //     - - x x x x x -
-    //     - x x x x x x -
-    //     - x x x x x x -
-    //     - x x x x x x -
-    //     - x x x x x x -
-    //     - x E x x C - -
-    //     - - - - - - - x";
+    let (map, width, height) = levels::load_level(82);
 
-    let level1 = level1.replace(" ", "");
-    let mut tilemap = game::game_state::GameState::new(&level1).await;
-
-    // tilemap.draw_map(&tilemap.map);
-
-    game::play_level(&mut tilemap).await;
+    let mut game_state = game::game_state::GameState::new().await;
+    game_state.set_level(map, width, height).await;
+    game::play_level(&mut game_state).await;
    
  }
 
 #[cfg(test)]
 mod tests {
     use std::cell::RefCell;
-
+    use crate::game::levels;
 
     #[test]
     fn test1() {
@@ -65,5 +38,12 @@ mod tests {
 
         a.modify_content();
         assert_eq!(*a.content.borrow(), String::from("modified content"));
+    }
+
+    #[test]
+    fn load_level1(){
+
+        levels::load_level(1);
+
     }
 }
