@@ -23,11 +23,13 @@ pub fn load_level(n: u32) -> (Vec<Tile>, usize, usize) {
             let mut t = Tile::new(c);
             if c == '|' {
                 t.velocity = Vec2::new(0., -SPEED);
-                t.looping = true
+                t.looping = true;
+                t.riding = true;
             }
             if c == '~' {
                 t.velocity = Vec2::new(SPEED, 0.);
-                t.looping = true
+                t.looping = true;
+                t.riding = true;
             }
 
             map.push(t);

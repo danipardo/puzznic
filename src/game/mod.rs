@@ -1,6 +1,6 @@
 pub(crate) mod game_state;
-pub(crate) mod sound;
 pub mod levels;
+pub(crate) mod sound;
 
 use macroquad::prelude::*;
 
@@ -18,7 +18,8 @@ pub struct Tile {
     velocity: Vec2,
     position_changed: bool,
     looping: bool,
-    dragging_direction: Option<Direction>
+    riding: bool,
+    dragging_direction: Option<Direction>,
 }
 
 pub enum TileChange {
@@ -28,6 +29,7 @@ pub enum TileChange {
     FadeOut(usize),
     Copy(Tile),
     VelocityUpdate(Vec2),
+    RidingFlag(bool),
 }
 impl Default for Tile {
     fn default() -> Self {
@@ -39,6 +41,7 @@ impl Default for Tile {
             velocity: Vec2::new(0., 0.),
             looping: false,
             dragging_direction: None,
+            riding: false,
         }
     }
 }
@@ -47,9 +50,12 @@ impl Tile {
     pub fn blank() -> Tile {
         Tile::default()
     }
-    pub fn new(c: char) -> Tile{
+    pub fn new(c: char) -> Tile {
         let mut t = Tile::default();
         t.c = c;
+        if c == '|' || c == '~' {
+            t.riding = true;
+        }
         return t;
     }
 
@@ -64,8 +70,9 @@ impl Tile {
             c: tile.c,
             position_changed: tile.position_changed,
             looping: tile.looping,
+            riding: tile.riding,
             fade_step: 0,
-            dragging_direction: None
+            dragging_direction: None,
         };
     }
     pub fn is_static(&self) -> bool {
@@ -108,6 +115,14 @@ pub fn handle_draw_map(level: &mut game_state::GameState) -> bool {
             }
             if tile.c != ' ' {
                 if tile.fade_step == 0 || tile.fade_step % 5 == 0 {
+                    // draw_rectangle(
+                    //     start_x,
+                    //     start_y,
+                    //     TILE_WIDTH * 3.,
+                    //     TILE_HEIGHT * 3.,
+                    //     WHITE,
+                    // );
+
                     draw_texture_ex(
                         level.texture_map,
                         start_x + tile.position.x,
@@ -165,10 +180,14 @@ pub fn handle_move_tiles(level: &mut game_state::GameState, _mixer: &mut Mixer) 
                 t.c = new_tile.c;
                 t.position_changed = new_tile.position_changed;
                 t.looping = new_tile.looping;
+                t.riding = new_tile.riding;
                 t.dragging_direction = None;
             }
             TileChange::VelocityUpdate(vec2) => {
                 t.velocity = *vec2;
+            }
+            TileChange::RidingFlag(flag) => {
+                t.riding = *flag;
             }
         }
     }
@@ -207,10 +226,8 @@ pub fn handle_move_player(level: &mut game_state::GameState, mixer: &mut Mixer) 
 pub async fn play_level(level: &mut game_state::GameState) {
     let camera = Camera2D::from_display_rect(Rect::new(0., 0., screen_width(), screen_height()));
 
-
-    let mut  mixer = sound::Mixer::new();
+    let mut mixer = sound::Mixer::new();
     mixer.play_sound(sound::Sound::LevelIntro);
-
 
     loop {
         set_camera(camera);
