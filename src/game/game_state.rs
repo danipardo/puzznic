@@ -12,6 +12,8 @@ pub struct GameState {
     pub time_elpsed: u32,
     pub dragging: bool,
 }
+
+/// AABB collision detection, returns true if collision found
 fn check_collision_perfect(
     x1: usize,
     y1: usize,
@@ -27,7 +29,7 @@ fn check_collision_perfect(
     let y2 = y2 as f32 * TILE_HEIGHT + t2.position.y as f32;
 
     if (x1 - x2).abs() <= TILE_WIDTH && (y1 - y2).abs() <= TILE_HEIGHT {
-        debug!("Found collision: ({},{}) x ({},{})", x1, y1, x2, y2);
+//        debug!("Found collision: ({},{}) x ({},{})", x1, y1, x2, y2);
         return true;
     }
 
@@ -127,6 +129,7 @@ impl GameState {
                 }
             }
             Direction::Down => new_y = usize::min(self.dimensions.1 - 1, new_y + 1),
+            Direction::None => {}
         }
 
         let tile_underneath = self.get_tile_at(new_x, new_y).c;
@@ -153,7 +156,7 @@ impl GameState {
         x: usize,
         y: usize,
         tile: &Tile,
-        direction: Direction,
+        direction: &Direction,
     ) -> Option<&Tile> {
         let map_width = self.dimensions.0;
         let map_height = self.dimensions.1;
@@ -223,6 +226,7 @@ impl GameState {
                     }
                 }
             }
+            Direction::None => {}
         }
 
         None
@@ -295,15 +299,20 @@ impl GameState {
 
         let map_height = self.dimensions.1;
 
-        if tile.looping == false
-            && tile.riding == false
-            && y < map_height
-            && tile.position.x == 0.
-            && self.get_tile_at(x, y + 1).c == ' '
+        if tile.looping == false && tile.riding == false && y < map_height && tile.position.x == 0.
         {
             // If the tile can move, and there is nothing underneath,
             //  it should fall
-            changes.push((x, y, TileChange::VelocityUpdate(Vec2::new(0., SPEED))));
+            let tile_underneath = self.get_tile_at(x, y + 1);
+            if tile_underneath.c == ' ' {
+                changes.push((x, y, TileChange::VelocityUpdate(Vec2::new(0., SPEED))));
+            } else {
+                if !check_collision_perfect(x, y, &tile, x, y + 1, &tile_underneath) {
+                    // There's something underneath, but we don't collide yet,
+                    //  so I can fall freely until colliding
+                    changes.push((x, y, TileChange::VelocityUpdate(Vec2::new(0., SPEED))));
+                }
+            }
             // falling_flag = true;
         }
 
@@ -342,10 +351,57 @@ impl GameState {
                 }
                 Direction::Up => {}
                 Direction::Down => {}
+                Direction::None => {}
             }
         }
 
         changes
+    }
+
+    // Can the tile Tile, which is currently located at (x,y)
+    // move in the direction Direction?
+    fn can_move(
+        &self,
+        tile: &Tile,
+        x: usize,
+        y: usize,
+        direction: &Direction,
+        map: &Vec<Tile>,
+    ) -> bool {
+        let mut other_tile = &Tile::new(' ');
+        let mut new_x = x;
+        let mut new_y = y;
+        match direction {
+            Direction::None => {}
+            Direction::Left => {
+                new_x = x - 1;
+                other_tile = self.get_tile_at(x - 1, y);
+            }
+            Direction::Right => {
+                new_x = x + 1;
+                other_tile = self.get_tile_at(x + 1, y);
+            }
+            Direction::Up => {
+                new_y = y - 1;
+                other_tile = self.get_tile_at(x, y - 1);
+            }
+            Direction::Down => {
+                new_y = y + 1;
+                other_tile = self.get_tile_at(x, y + 1);
+            }
+        }
+
+        if other_tile.c == ' ' {
+            return true;
+        }
+        if other_tile.is_static() {
+            return false;
+        }
+        if other_tile.is_playable() {
+            return self.can_move(other_tile, new_x, new_y, direction, map);
+        }
+
+        true
     }
 
     fn handle_movement(
@@ -360,11 +416,13 @@ impl GameState {
         let map_width = self.dimensions.0;
         let map_height = self.dimensions.1;
 
-
         let mut collision_target = None;
+
+        let mut direction = Direction::None;
         // moving up?
         if tile.velocity == Vec2::new(0., -SPEED) && y > 0 {
-            collision_target = self.check_collision(x, y, &tile, Direction::Up);
+            direction = Direction::Up;
+            collision_target = self.check_collision(x, y, &tile, &direction);
             if collision_target.is_none() {
                 if tile.position.y == 0. {
                     // Jump the sprite from one tile the the one on the top
@@ -381,7 +439,8 @@ impl GameState {
         }
         // moving down?
         if tile.velocity == Vec2::new(0., SPEED) && y < map_height {
-            collision_target = self.check_collision(x, y, &tile, Direction::Down);
+            direction = Direction::Down;
+            collision_target = self.check_collision(x, y, &tile, &direction);
             if collision_target.is_none() {
                 if tile.position.y >= TILE_WIDTH * 3. {
                     let mut new_tile = Tile::from(&tile);
@@ -396,11 +455,13 @@ impl GameState {
 
         // moving left
         if tile.velocity == Vec2::new(-SPEED, 0.) && x > 0 {
-            collision_target = self.check_collision(x, y, &tile, Direction::Left);
+            direction = Direction::Left;
+            collision_target = self.check_collision(x, y, &tile, &direction);
 
             if collision_target.is_none() {
                 if tile.position.x == 0. {
                     let mut new_tile = Tile::from(&tile);
+                    new_tile.riding = false;
                     new_tile.position.x = TILE_WIDTH * 3. - 1.;
                     changes.push((x - 1, y, TileChange::Copy(new_tile)));
                     changes.push((x, y, TileChange::Copy(Tile::blank())));
@@ -412,11 +473,13 @@ impl GameState {
 
         // moving right
         if tile.velocity == Vec2::new(SPEED, 0.) && x < map_width {
-            collision_target = self.check_collision(x, y, &tile, Direction::Right);
+            direction = Direction::Right;
+            collision_target = self.check_collision(x, y, &tile, &direction);
             if collision_target.is_none() {
                 if tile.position.x > TILE_WIDTH * 3. {
                     let mut new_tile = Tile::from(&tile);
                     new_tile.position.x = 0.;
+                    new_tile.riding = false;
                     changes.push((x + 1, y, TileChange::Copy(new_tile)));
                     changes.push((x, y, TileChange::Copy(Tile::blank())));
                 } else {
@@ -431,14 +494,23 @@ impl GameState {
                 "I am {}: Collision at ({},{}) with {}, riding: {}",
                 tile.c, x, y, collider.c, collider.riding
             );
-            if tile.riding && collider.is_playable() && !collider.riding {
-                // continue my movement
+            // If the tile is riding and moving up, the tile will be able to move up
+            // as long as the tile on top can also move up
+            if tile.looping {
+                if !self.can_move(tile, x, y, &direction, &map) {
+                    changes.push((x, y, TileChange::Bounce));
+                    //   debug!("Woops, I am a looping platform and will now bounce");
+                }
+            } else if tile.riding {
+                // if I cannot move upwards, I should start falling
+                if !self.can_move(tile, x, y, &direction, &map) {
+                    changes.push((x, y, TileChange::RidingFlag(false)));
+                    //                    changes.push((x, y, TileChange::VelocityUpdate(Vec2::new(0., SPEED))));
+                    changes.push((x, y, TileChange::Stop));
+                }
             } else if collider.riding {
                 changes.push((x, y, TileChange::RidingFlag(true)));
                 changes.push((x, y, TileChange::VelocityUpdate(collider.velocity)));
-            } else if tile.c == collider.c {
-                // if my tile is the same as the colliding one, fadeout
-                changes.push((x, y, TileChange::FadeOut(1)));
             } else if tile.looping && collider.is_static() {
                 // If I am a moving platform, bounce
                 changes.push((x, y, TileChange::Bounce));
@@ -449,6 +521,7 @@ impl GameState {
 
         changes
     }
+
     /// Given a map, return all tiles that should change.
     /// That is, which cell (x,y) changes, and the Tile that should be placed there
     pub fn next_map(&self, map: &Vec<Tile>) -> Vec<(usize, usize, TileChange)> {

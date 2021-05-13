@@ -86,6 +86,7 @@ pub struct Player {
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Direction {
+    None,
     Left,
     Right,
     Up,
