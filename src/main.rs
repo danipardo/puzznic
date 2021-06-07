@@ -4,9 +4,9 @@ pub mod game;
 #[macroquad::main("Puzznic")]
 async fn main() {
 
-    let (map, width, height) = levels::load_level(82);
+    let (map, width, height) = levels::load_level(104);
 
-    let mut game_state = game::game_state::GameState::new().await;
+    let mut game_state = game::game_logic::GameLogic::new().await;
     game_state.set_level(map, width, height).await;
     game::play_level(&mut game_state).await;
    

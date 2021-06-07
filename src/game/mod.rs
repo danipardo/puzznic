@@ -1,84 +1,19 @@
-pub(crate) mod game_state;
+pub(crate) mod game_logic;
 pub mod levels;
 pub(crate) mod sound;
+pub mod tile;
+use core::time;
+use std::thread;
 
 use macroquad::prelude::*;
 
-use self::sound::Mixer;
+use self::{sound::Mixer, tile::Tile, tile::TileChange};
 
 const TILE_WIDTH: f32 = 16f32;
 const TILE_HEIGHT: f32 = 16f32;
 const SPEED: f32 = 3.0;
 
-#[derive(Debug)]
-pub struct Tile {
-    pub c: char,
-    fade_step: u32,
-    position: Vec2,
-    velocity: Vec2,
-    position_changed: bool,
-    looping: bool,
-    riding: bool,
-    dragging_direction: Option<Direction>,
-}
 
-pub enum TileChange {
-    Move,
-    Bounce,
-    Stop,
-    FadeOut(usize),
-    Copy(Tile),
-    VelocityUpdate(Vec2),
-    RidingFlag(bool),
-}
-impl Default for Tile {
-    fn default() -> Self {
-        Tile {
-            c: ' ',
-            fade_step: 0,
-            position_changed: false,
-            position: Vec2::new(0., 0.), // 0..15 relative to the tile coordinates in the map
-            velocity: Vec2::new(0., 0.),
-            looping: false,
-            dragging_direction: None,
-            riding: false,
-        }
-    }
-}
-
-impl Tile {
-    pub fn blank() -> Tile {
-        Tile::default()
-    }
-    pub fn new(c: char) -> Tile {
-        let mut t = Tile::default();
-        t.c = c;
-        if c == '|' || c == '~' {
-            t.riding = true;
-        }
-        return t;
-    }
-
-    pub fn is_playable(&self) -> bool {
-        return self.c != ' ' && self.c != '-';
-    }
-
-    pub fn from(tile: &Tile) -> Tile {
-        return Tile {
-            position: tile.position,
-            velocity: tile.velocity,
-            c: tile.c,
-            position_changed: tile.position_changed,
-            looping: tile.looping,
-            riding: tile.riding,
-            fade_step: 0,
-            dragging_direction: None,
-        };
-    }
-    pub fn is_static(&self) -> bool {
-        return self.c == ' ' || self.c == '-';
-    }
-}
 
 pub struct Player {
     pub position: (usize, usize),
@@ -92,7 +27,7 @@ pub enum Direction {
     Up,
     Down,
 }
-pub fn handle_draw_player(level: &mut game_state::GameState) {
+pub fn handle_draw_player(level: &mut game_logic::GameLogic) {
     // Draw player rectangle
     let (x, y) = (
         level.player.position.0 as f32 * TILE_WIDTH * 3.0,
@@ -102,7 +37,7 @@ pub fn handle_draw_player(level: &mut game_state::GameState) {
     draw_rectangle_lines(x, y, TILE_WIDTH * 3.0, TILE_HEIGHT * 3.0, 3., RED);
 }
 
-pub fn handle_draw_map(level: &mut game_state::GameState) -> bool {
+pub fn handle_draw_map(level: &mut game_logic::GameLogic) -> bool {
     let dimensions = level.dimensions;
     let mut start_x = 0.0;
     let mut start_y = 0.0;
@@ -116,13 +51,7 @@ pub fn handle_draw_map(level: &mut game_state::GameState) -> bool {
             }
             if tile.c != ' ' {
                 if tile.fade_step == 0 || tile.fade_step % 5 == 0 {
-                    // draw_rectangle(
-                    //     start_x,
-                    //     start_y,
-                    //     TILE_WIDTH * 3.,
-                    //     TILE_HEIGHT * 3.,
-                    //     WHITE,
-                    // );
+                  draw_rectangle(start_x, start_y, TILE_WIDTH * 3., TILE_HEIGHT * 3., WHITE);
 
                     draw_texture_ex(
                         level.texture_map,
@@ -143,7 +72,7 @@ pub fn handle_draw_map(level: &mut game_state::GameState) -> bool {
     playable_pieces == 0
 }
 
-pub fn handle_move_tiles(level: &mut game_state::GameState, _mixer: &mut Mixer) {
+pub fn handle_move_tiles(level: &mut game_logic::GameLogic, _mixer: &mut Mixer) {
     let changes = level.next_map(&level.map);
 
     for change in &changes {
@@ -193,7 +122,7 @@ pub fn handle_move_tiles(level: &mut game_state::GameState, _mixer: &mut Mixer) 
         }
     }
 }
-pub fn handle_move_player(level: &mut game_state::GameState, mixer: &mut Mixer) -> bool {
+pub fn handle_move_player(level: &mut game_logic::GameLogic, mixer: &mut Mixer) -> bool {
     if is_key_down(KeyCode::Escape) {
         return true;
     }
@@ -224,11 +153,11 @@ pub fn handle_move_player(level: &mut game_state::GameState, mixer: &mut Mixer) 
 
     false
 }
-pub async fn play_level(level: &mut game_state::GameState) {
+pub async fn play_level(level: &mut game_logic::GameLogic) {
     let camera = Camera2D::from_display_rect(Rect::new(0., 0., screen_width(), screen_height()));
 
     let mut mixer = sound::Mixer::new();
-    mixer.play_sound(sound::Sound::LevelIntro);
+  //  mixer.play_sound(sound::Sound::LevelIntro);
 
     loop {
         set_camera(camera);
@@ -238,8 +167,13 @@ pub async fn play_level(level: &mut game_state::GameState) {
         if handle_move_player(level, &mut mixer) {
             break;
         }
-        handle_move_tiles(level, &mut mixer);
+        if !is_key_down(KeyCode::Space) {
+            handle_move_tiles(level, &mut mixer);
+        }
 
+        let ten_millis = time::Duration::from_millis(30);
+
+      //  thread::sleep(ten_millis);
         if handle_draw_map(level) {
             println!("Level completed!");
             break;

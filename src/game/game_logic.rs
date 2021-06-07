@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Write};
 
 use super::*;
 
-pub struct GameState {
+pub struct GameLogic {
     pub map: Vec<Tile>,
     pub texture_map: Texture2D, // single image that contains all the tiles
     pub tile_info: HashMap<char, u32>, // image offset of each tile in the main image
@@ -21,6 +21,7 @@ fn check_collision_perfect(
     x2: usize,
     y2: usize,
     t2: &Tile,
+    debug: bool,
 ) -> bool {
     let x1 = x1 as f32 * TILE_WIDTH + t1.position.x as f32;
     let x2 = x2 as f32 * TILE_WIDTH + t2.position.x as f32;
@@ -29,14 +30,30 @@ fn check_collision_perfect(
     let y2 = y2 as f32 * TILE_HEIGHT + t2.position.y as f32;
 
     if (x1 - x2).abs() <= TILE_WIDTH && (y1 - y2).abs() <= TILE_HEIGHT {
-//        debug!("Found collision: ({},{}) x ({},{})", x1, y1, x2, y2);
+        if debug {
+            debug!(" *** Found collision: ({},{}) x ({},{})", x1, y1, x2, y2);
+        }
         return true;
     }
 
     false
 }
 
-impl GameState {
+impl std::fmt::Debug for GameLogic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for y in 0..self.dimensions.1 {
+            for x in 0..self.dimensions.0 {
+                let t = self.get_tile_at(x, y);
+                f.write_char(t.c)?;
+            }
+            f.write_str("\n")?;
+        }
+        f.write_str("\n")?;
+
+        Ok(())
+    }
+}
+impl GameLogic {
     pub fn get_tile_texture_params(&self, c: char) -> DrawTextureParams {
         let offset = *self
             .tile_info
@@ -93,7 +110,7 @@ impl GameState {
         tile_info.insert('|', 112u32);
         tile_info.insert('-', 128u32);
 
-        GameState {
+        GameLogic {
             map: vec![],
             texture_map,
             tile_info,
@@ -165,13 +182,13 @@ impl GameState {
             Direction::Up => {
                 if y > 0 {
                     let t = self.get_tile_at(x, y - 1);
-                    if t.c != ' ' && check_collision_perfect(x, y, &tile, x, y - 1, &t) {
+                    if t.c != ' ' && check_collision_perfect(x, y, &tile, x, y - 1, &t, false) {
                         return Some(&t);
                     }
                     if tile.position.x > 0. && x < map_width {
                         // if its also in the next cell, check the right upper cell
                         let t = self.get_tile_at(x + 1, y - 1);
-                        if t.c != ' ' && check_collision_perfect(x, y, &tile, x + 1, y - 1, &t) {
+                        if t.c != ' ' && check_collision_perfect(x, y, &tile, x + 1, y - 1, &t, false) {
                             return Some(&t);
                         }
                     }
@@ -180,32 +197,32 @@ impl GameState {
             Direction::Down => {
                 if y < map_height {
                     let t = self.get_tile_at(x, y + 1);
-                    if t.c != ' ' && check_collision_perfect(x, y, &tile, x, y + 1, &t) {
+                    if t.c != ' ' && check_collision_perfect(x, y, &tile, x, y + 1, &t, true) {
                         return Some(&t);
                     }
                     if tile.position.x > 0. && x < map_width {
                         // if its also in the next cell, check the right upper cell
                         let t = self.get_tile_at(x + 1, y + 1);
-                        if t.c != ' ' && check_collision_perfect(x, y, &tile, x + 1, y + 1, &t) {
+                        if t.c != ' ' && check_collision_perfect(x, y, &tile, x + 1, y + 1, &t, true) {
                             return Some(&t);
                         }
                     }
                 }
             }
             Direction::Left => {
-                println!(
-                    "Checking left at {},{} position ({},{})",
-                    x, y, tile.position.x, tile.position.y
-                );
-                if x > 0 && tile.position.x == 0. {
+                //                println!(
+                //                    "Checking left at {},{} position ({},{})",
+                //                    x, y, tile.position.x, tile.position.y
+                //                );
+                if x > 0 {
                     let t = self.get_tile_at(x - 1, y);
-                    if t.c != ' ' && check_collision_perfect(x, y, &tile, x - 1, y, &t) {
+                    if t.c != ' ' && check_collision_perfect(x, y, &tile, x - 1, y, &t, false) {
                         return Some(&t);
                     }
                     if tile.position.y > 0. && y < map_height {
                         // if its also in the next cell, check the right upper cell
                         let t = self.get_tile_at(x - 1, y + 1);
-                        if t.c != ' ' && check_collision_perfect(x, y, &tile, x - 1, y + 1, &t) {
+                        if t.c != ' ' && check_collision_perfect(x, y, &tile, x - 1, y + 1, &t, false) {
                             return Some(&t);
                         }
                     }
@@ -214,13 +231,13 @@ impl GameState {
             Direction::Right => {
                 if x < map_width {
                     let t = self.get_tile_at(x + 1, y);
-                    if t.c != ' ' && check_collision_perfect(x, y, &tile, x + 1, y, &t) {
+                    if t.c != ' ' && check_collision_perfect(x, y, &tile, x + 1, y, &t, false) {
                         return Some(&t);
                     }
                     if tile.position.y > 0. && y < map_height {
                         // if its also in the next cell, check the right upper cell
                         let t = self.get_tile_at(x + 1, y + 1);
-                        if t.c != ' ' && check_collision_perfect(x, y, &tile, x + 1, y + 1, &t) {
+                        if t.c != ' ' && check_collision_perfect(x, y, &tile, x + 1, y + 1, &t, false) {
                             return Some(&t);
                         }
                     }
@@ -307,7 +324,7 @@ impl GameState {
             if tile_underneath.c == ' ' {
                 changes.push((x, y, TileChange::VelocityUpdate(Vec2::new(0., SPEED))));
             } else {
-                if !check_collision_perfect(x, y, &tile, x, y + 1, &tile_underneath) {
+                if !check_collision_perfect(x, y, &tile, x, y + 1, &tile_underneath, false) {
                     // There's something underneath, but we don't collide yet,
                     //  so I can fall freely until colliding
                     changes.push((x, y, TileChange::VelocityUpdate(Vec2::new(0., SPEED))));
@@ -419,15 +436,18 @@ impl GameState {
         let mut collision_target = None;
 
         let mut direction = Direction::None;
+        let mut collider_x = 0;
+        let mut collider_y = 0;
+
         // moving up?
         if tile.velocity == Vec2::new(0., -SPEED) && y > 0 {
             direction = Direction::Up;
             collision_target = self.check_collision(x, y, &tile, &direction);
             if collision_target.is_none() {
-                if tile.position.y == 0. {
+                if tile.position.y < 0. {
                     // Jump the sprite from one tile the the one on the top
                     let mut new_tile = Tile::from(&tile);
-                    new_tile.position.y = TILE_HEIGHT * 3.;
+                    new_tile.position.y = TILE_HEIGHT * 3. - 1.;
                     changes.push((x, y, TileChange::Copy(Tile::blank())));
                     changes.push((x, y - 1, TileChange::Copy(new_tile)));
                 } else {
@@ -450,6 +470,9 @@ impl GameState {
                 } else {
                     changes.push((x, y, TileChange::Move));
                 }
+            } else {
+                collider_x = x;
+                collider_y = y + 1;
             }
         }
 
@@ -459,7 +482,7 @@ impl GameState {
             collision_target = self.check_collision(x, y, &tile, &direction);
 
             if collision_target.is_none() {
-                if tile.position.x == 0. {
+                if tile.position.x < 0. {
                     let mut new_tile = Tile::from(&tile);
                     new_tile.riding = false;
                     new_tile.position.x = TILE_WIDTH * 3. - 1.;
@@ -476,7 +499,7 @@ impl GameState {
             direction = Direction::Right;
             collision_target = self.check_collision(x, y, &tile, &direction);
             if collision_target.is_none() {
-                if tile.position.x > TILE_WIDTH * 3. {
+                if tile.position.x >= TILE_WIDTH * 3. {
                     let mut new_tile = Tile::from(&tile);
                     new_tile.position.x = 0.;
                     new_tile.riding = false;
@@ -489,11 +512,17 @@ impl GameState {
         }
 
         if collision_target.is_some() {
+
             let collider = collision_target.unwrap();
+
             println!(
-                "I am {}: Collision at ({},{}) with {}, riding: {}",
-                tile.c, x, y, collider.c, collider.riding
+                "I am {}: Collision at ({},{}) with {}, riding: {}, looping: {}",
+                tile.c, x, y, collider.c, collider.riding, tile.looping
             );
+            if collider.looping {
+                changes.push((collider_x, collider_y, TileChange::Bounce));
+                debug!("Telling collier looping to bounce");
+            }
             // If the tile is riding and moving up, the tile will be able to move up
             // as long as the tile on top can also move up
             if tile.looping {
