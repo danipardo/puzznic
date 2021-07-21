@@ -163,15 +163,34 @@ impl GameLogic {
         None
     }
 
+    fn new_handle_falling(&self, tile: &Tile) -> Option<TileChange> {
+        if tile.c == '|' || tile.c == '~' {
+            return None;
+        }
+        let new_position = tile.position + Vec2::new(0., SPEED);
+        if let Some(index) = self.check_collision(tile, &self.map, &new_position) {
+            let tile_underneath = self.map.get(index);
+            let tile_underneath = tile_underneath.unwrap();
+            if tile_underneath.c == '|' || tile_underneath.c == '~' {
+                debug!("Tile {} starts riding", tile.c);
+                return Some(TileChange::StartRiding(tile_underneath.velocity.clone()));
+            }
+        } else {
+            return Some(TileChange::Fall);
+        }
+        None
+    }
     fn new_handle_movement(&self, tile: &Tile, map: &Vec<Tile>) -> Option<TileChange> {
         if tile.velocity != Vec2::zero() {
             // Find out the next theorical coordinates
             let new_position = tile.position + tile.velocity;
-
-            if let Some(_collider) = self.check_collision(&tile, &map, &new_position) {
-                if tile.c == '|' || tile.c == '~' {
+            if let Some(index) = self.check_collision(&tile, &map, &new_position) {
+                let collider = self.map.get(index).unwrap();
+                if (tile.c == '|' || tile.c == '~') && collider.riding == false {
+                    debug!("Tile {} bounces with {}", tile.c, collider.c);
                     return Some(TileChange::Bounce);
-                } else {
+                } else if tile.c != '|' && tile.c != '~' {
+                    debug!("Tile {} stops", tile.c);
                     return Some(TileChange::Stop);
                 }
             }
@@ -192,6 +211,9 @@ impl GameLogic {
                     changes.push((index, tc));
                 }
                 if let Some(tc) = self.new_handle_dragging(&tile) {
+                    changes.push((index, tc));
+                }
+                if let Some(tc) = self.new_handle_falling(&tile) {
                     changes.push((index, tc));
                 }
             }

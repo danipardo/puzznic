@@ -11,7 +11,7 @@ use self::{sound::Mixer, tile::Tile, tile::TileChange};
 
 const TILE_WIDTH: f32 = 16f32;
 const TILE_HEIGHT: f32 = 16f32;
-const SPEED: f32 = 2.0;
+const SPEED: f32 = 1.;
 
 pub struct Player {
     pub position: (usize, usize),
@@ -71,7 +71,6 @@ pub fn handle_move_tiles(level: &mut game_logic::GameLogic, _mixer: &mut Mixer) 
 
     for (index,  tile_change) in &changes {
         let t = level.map.get_mut(*index).unwrap();
-
         match tile_change {
             TileChange::Stop => {
                 t.velocity = Vec2::zero();
@@ -97,14 +96,22 @@ pub fn handle_move_tiles(level: &mut game_logic::GameLogic, _mixer: &mut Mixer) 
                     t.fade_step = 0;
                 }
             }
-            TileChange::Copy(new_tile) => {
-                t.position = new_tile.position;
-                t.velocity = new_tile.velocity;
-                t.c = new_tile.c;
-                t.looping = new_tile.looping;
-                t.riding = new_tile.riding;
-                t.dragging_direction = None;
+            TileChange::StartRiding(velocity) => {
+                t.riding = true;
+                t.velocity = *velocity;
             }
+            TileChange::Fall => {
+                t.velocity = Vec2::new(0., SPEED);
+                t.riding = false;
+            }
+            // TileChange::Copy(new_tile) => {
+            //     t.position = new_tile.position;
+            //     t.velocity = new_tile.velocity;
+            //     t.c = new_tile.c;
+            //     t.looping = new_tile.looping;
+            //     t.riding = new_tile.riding;
+            //     t.dragging_direction = None;
+            // }
             TileChange::VelocityUpdate(vec2) => {
                 t.velocity = *vec2;
             }
