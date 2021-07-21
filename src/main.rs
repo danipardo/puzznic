@@ -1,10 +1,19 @@
 use game::levels;
+use macroquad::prelude::Conf;
 pub mod game;
 
-#[macroquad::main("Puzznic")]
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "test".to_owned(),
+        window_width: 320 * 3,
+        window_height: 200 * 3,
+        ..Default::default()
+    }
+}
+#[macroquad::main(window_conf)]
 async fn main() {
 
-    let (map, width, height) = levels::load_level(104);
+    let (map, width, height) = levels::load_level(82);
 
     let mut game_state = game::game_logic::GameLogic::new().await;
     game_state.set_level(map, width, height).await;

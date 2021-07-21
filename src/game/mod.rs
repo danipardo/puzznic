@@ -11,9 +11,7 @@ use self::{sound::Mixer, tile::Tile, tile::TileChange};
 
 const TILE_WIDTH: f32 = 16f32;
 const TILE_HEIGHT: f32 = 16f32;
-const SPEED: f32 = 3.0;
-
-
+const SPEED: f32 = 2.0;
 
 pub struct Player {
     pub position: (usize, usize),
@@ -30,44 +28,40 @@ pub enum Direction {
 pub fn handle_draw_player(level: &mut game_logic::GameLogic) {
     // Draw player rectangle
     let (x, y) = (
-        level.player.position.0 as f32 * TILE_WIDTH * 3.0,
-        level.player.position.1 as f32 * TILE_WIDTH * 3.0,
+        level.player.position.0 as f32 * TILE_WIDTH * 1.0,
+        level.player.position.1 as f32 * TILE_WIDTH * 1.0,
     );
 
-    draw_rectangle_lines(x, y, TILE_WIDTH * 3.0, TILE_HEIGHT * 3.0, 3., RED);
+    draw_rectangle_lines(x, y, TILE_WIDTH *1.0, TILE_HEIGHT * 1.0, 2., RED);
 }
 
 pub fn handle_draw_map(level: &mut game_logic::GameLogic) -> bool {
-    let dimensions = level.dimensions;
-    let mut start_x = 0.0;
-    let mut start_y = 0.0;
+    //  let dimensions = level.dimensions;
+    // let mut start_x = 0.0;
+    // let mut start_y = 0.0;
 
     let mut playable_pieces = 0;
-    for y in 0..dimensions.1 {
-        for x in 0..dimensions.0 {
-            let tile = level.get_tile_at(x, y);
-            if tile.is_playable() {
-                playable_pieces += 1;
-            }
-            if tile.c != ' ' {
-                if tile.fade_step == 0 || tile.fade_step % 5 == 0 {
-                  draw_rectangle(start_x, start_y, TILE_WIDTH * 3., TILE_HEIGHT * 3., WHITE);
-
-                    draw_texture_ex(
-                        level.texture_map,
-                        start_x + tile.position.x,
-                        start_y + tile.position.y,
-                        WHITE,
-                        level.get_tile_texture_params(tile.c),
-                    );
-                }
-            }
-            start_x = start_x + TILE_HEIGHT * 3.0 as f32;
+    //    for y in 0..dimensions.1 {
+    //      for x in 0..dimensions.0 {
+    for tile in &level.map {
+        // let tile = level.get_tile_at(x, y);
+        if tile.is_playable() {
+            playable_pieces += 1;
         }
-
-        start_x = 0.0;
-        start_y = start_y + TILE_WIDTH * 3.0;
+        if tile.c != ' ' {
+            if tile.fade_step == 0 || tile.fade_step % 5 == 0 {
+           
+                draw_texture_ex(
+                    level.texture_map,
+                    tile.position.x,
+                    tile.position.y,
+                    WHITE,
+                    level.get_tile_texture_params(tile.c),
+                );
+            }
+        }
     }
+
 
     playable_pieces == 0
 }
@@ -75,17 +69,12 @@ pub fn handle_draw_map(level: &mut game_logic::GameLogic) -> bool {
 pub fn handle_move_tiles(level: &mut game_logic::GameLogic, _mixer: &mut Mixer) {
     let changes = level.next_map(&level.map);
 
-    for change in &changes {
-        let t = level
-            .map
-            .get_mut(change.1 * level.dimensions.0 + change.0)
-            .unwrap();
+    for (index,  tile_change) in &changes {
+        let t = level.map.get_mut(*index).unwrap();
 
-        let tile_change = &change.2;
         match tile_change {
             TileChange::Stop => {
-                println!("Stoping tile");
-                t.velocity = Vec2::new(0., 0.);
+                t.velocity = Vec2::zero();
             }
             TileChange::Move => {
                 // println!(
@@ -93,7 +82,11 @@ pub fn handle_move_tiles(level: &mut game_logic::GameLogic, _mixer: &mut Mixer) 
                 //     change.0, change.1, t.position.x, t.position.y
                 // );
                 t.position = t.position + t.velocity;
-            }
+            },
+            TileChange::Jump(position) => {
+                t.position = *position;
+                t.dragging_direction = None;
+            },
             TileChange::Bounce => {
                 t.velocity = t.velocity * -1.;
             }
@@ -108,7 +101,6 @@ pub fn handle_move_tiles(level: &mut game_logic::GameLogic, _mixer: &mut Mixer) 
                 t.position = new_tile.position;
                 t.velocity = new_tile.velocity;
                 t.c = new_tile.c;
-                t.position_changed = new_tile.position_changed;
                 t.looping = new_tile.looping;
                 t.riding = new_tile.riding;
                 t.dragging_direction = None;
@@ -154,16 +146,16 @@ pub fn handle_move_player(level: &mut game_logic::GameLogic, mixer: &mut Mixer) 
     false
 }
 pub async fn play_level(level: &mut game_logic::GameLogic) {
-    let camera = Camera2D::from_display_rect(Rect::new(0., 0., screen_width(), screen_height()));
+    //    let camera = Camera2D::from_display_rect(Rect::new(0., 0., screen_width(), screen_height()));
+    let camera = Camera2D::from_display_rect(Rect::new(0., 0., 320., 200.));
 
     let mut mixer = sound::Mixer::new();
-  //  mixer.play_sound(sound::Sound::LevelIntro);
+    //  mixer.play_sound(sound::Sound::LevelIntro);
 
     loop {
-        set_camera(camera);
 
         clear_background(GRAY);
-
+        set_camera(camera);
         if handle_move_player(level, &mut mixer) {
             break;
         }
@@ -171,9 +163,9 @@ pub async fn play_level(level: &mut game_logic::GameLogic) {
             handle_move_tiles(level, &mut mixer);
         }
 
-        let ten_millis = time::Duration::from_millis(30);
+        // let ten_millis = time::Duration::from_millis(30);
+        //  thread::sleep(ten_millis);
 
-      //  thread::sleep(ten_millis);
         if handle_draw_map(level) {
             println!("Level completed!");
             break;
