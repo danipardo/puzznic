@@ -10,6 +10,7 @@ pub struct GameLogic {
     pub player: Player,
     pub score: u32,
     pub time_elpsed: u32,
+    pub fading_out: bool,
     pub dragging: bool,
 }
 
@@ -90,6 +91,7 @@ impl GameLogic {
             dragging: false,
             score: 0,
             time_elpsed: 0,
+            fading_out: false
         }
     }
 
@@ -217,7 +219,7 @@ impl GameLogic {
                     || ((tile.position.y - t.position.y).abs() == TILE_WIDTH)
                         && ((tile.position.x - t.position.x).abs() == 0.0))
             {
-                return Some(TileChange::FadeOut());
+                return Some(TileChange::FadeOut);
             }
         }
 
@@ -230,14 +232,18 @@ impl GameLogic {
 
         for (index, tile) in map.iter().enumerate() {
             if tile.is_playable() {
-                if let Some(tc) = self.new_handle_collision(&tile, &map) {
-                    changes.push((index, tc));
-                }
-                if let Some(tc) = self.new_handle_dragging(&tile) {
-                    changes.push((index, tc));
-                }
-                if let Some(tc) = self.handle_matches(&tile) {
-                    changes.push((index, tc));
+                if tile.fade_step > 0 {
+                    changes.push((index, TileChange::FadeOut));
+                } else  if self.fading_out == false {
+                    if let Some(tc) = self.new_handle_collision(&tile, &map) {
+                        changes.push((index, tc));
+                    }
+                    if let Some(tc) = self.new_handle_dragging(&tile) {
+                        changes.push((index, tc));
+                    }
+                    if let Some(tc) = self.handle_matches(&tile) {
+                        changes.push((index, tc));
+                    }
                 }
             }
         }
