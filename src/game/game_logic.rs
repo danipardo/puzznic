@@ -176,7 +176,7 @@ impl GameLogic {
             if tile.c == '|' || tile.c == '~' {
                 if self.can_push(&collider, &tile.velocity) && tile.velocity != Vec2::new(0., SPEED)
                 {
-                    return None; 
+                    return None;
                 } else {
                     debug!("Cannot push, Tile {} bounces with {}", tile.c, collider.c);
                     return Some(TileChange::Bounce);
@@ -208,6 +208,21 @@ impl GameLogic {
         return Some(TileChange::Move);
     }
 
+    pub fn handle_matches(&self, tile: &Tile) -> Option<TileChange> {
+        for t in self.map.iter() {
+            if tile.id != t.id
+                && tile.c == t.c
+                && (((tile.position.x - t.position.x).abs() == TILE_WIDTH)
+                    && ((tile.position.y - t.position.y).abs() == 0.0)
+                    || ((tile.position.y - t.position.y).abs() == TILE_WIDTH)
+                        && ((tile.position.x - t.position.x).abs() == 0.0))
+            {
+                return Some(TileChange::FadeOut());
+            }
+        }
+
+        None
+    }
     /// Given a map, return all tiles that should change.
     /// That is, which cell (x,y) changes, and the Tile that should be placed there
     pub fn next_map(&self, map: &Vec<Tile>) -> Vec<(usize, TileChange)> {
@@ -221,9 +236,9 @@ impl GameLogic {
                 if let Some(tc) = self.new_handle_dragging(&tile) {
                     changes.push((index, tc));
                 }
-                // if let Some(tc) = self.new_handle_falling(&tile) {
-                //     changes.push((index, tc));
-                // }
+                if let Some(tc) = self.handle_matches(&tile) {
+                    changes.push((index, tc));
+                }
             }
         }
 

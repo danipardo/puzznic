@@ -56,7 +56,7 @@ pub enum TileChange {
     Move,
     Bounce,
     Stop,
-    FadeOut(usize),
+    FadeOut(),
     // Copy(Tile),
     Jump(Vec2),
     VelocityUpdate(Vec2),

@@ -48,8 +48,7 @@ pub fn handle_draw_map(level: &mut game_logic::GameLogic) -> bool {
         if tile.is_playable() {
             playable_pieces += 1;
         }
-        if tile.c != ' ' {
-            if tile.fade_step == 0 || tile.fade_step % 5 == 0 {
+            if tile.fade_step == 0 || tile.fade_step % 4 == 0 {
            
                 draw_texture_ex(
                     level.texture_map,
@@ -59,7 +58,6 @@ pub fn handle_draw_map(level: &mut game_logic::GameLogic) -> bool {
                     level.get_tile_texture_params(tile.c),
                 );
             }
-        }
     }
 
 
@@ -68,7 +66,8 @@ pub fn handle_draw_map(level: &mut game_logic::GameLogic) -> bool {
 
 pub fn handle_move_tiles(level: &mut game_logic::GameLogic, _mixer: &mut Mixer) {
     let changes = level.next_map(&level.map);
-
+    let mut drain: Vec<u32> = vec![];
+ 
     for (index,  tile_change) in &changes {
         let t = level.map.get_mut(*index).unwrap();
         match tile_change {
@@ -90,11 +89,10 @@ pub fn handle_move_tiles(level: &mut game_logic::GameLogic, _mixer: &mut Mixer) 
             TileChange::Bounce => {
                 t.velocity = t.velocity * -1.;
             }
-            TileChange::FadeOut(_) => {
+            TileChange::FadeOut() => {
                 t.fade_step = t.fade_step + 1;
                 if t.fade_step >= 50 {
-                    t.c = ' ';
-                    t.fade_step = 0;
+                   drain.push(t.id);
                 }
             }
             TileChange::StartRiding(velocity) => {
@@ -114,6 +112,8 @@ pub fn handle_move_tiles(level: &mut game_logic::GameLogic, _mixer: &mut Mixer) 
             }
         }
     }
+    level.map.retain(|e| !drain.contains(&e.id));
+
 }
 pub fn handle_move_player(level: &mut game_logic::GameLogic, mixer: &mut Mixer) -> bool {
     if is_key_down(KeyCode::Escape) {
