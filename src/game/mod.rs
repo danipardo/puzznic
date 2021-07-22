@@ -84,6 +84,7 @@ pub fn handle_move_tiles(level: &mut game_logic::GameLogic, _mixer: &mut Mixer) 
             },
             TileChange::Jump(position) => {
                 t.position = *position;
+                t.velocity = Vec2::zero();
                 t.dragging_direction = None;
             },
             TileChange::Bounce => {
@@ -104,14 +105,7 @@ pub fn handle_move_tiles(level: &mut game_logic::GameLogic, _mixer: &mut Mixer) 
                 t.velocity = Vec2::new(0., SPEED);
                 t.riding = false;
             }
-            // TileChange::Copy(new_tile) => {
-            //     t.position = new_tile.position;
-            //     t.velocity = new_tile.velocity;
-            //     t.c = new_tile.c;
-            //     t.looping = new_tile.looping;
-            //     t.riding = new_tile.riding;
-            //     t.dragging_direction = None;
-            // }
+            
             TileChange::VelocityUpdate(vec2) => {
                 t.velocity = *vec2;
             }

@@ -14,20 +14,9 @@ pub struct GameLogic {
 }
 
 /// AABB collision detection, returns true if collision found
-fn check_collision_perfect(t1: &Tile, coordinates: &Vec2, debug: bool) -> bool {
-    if (t1.position.x - coordinates.x).abs() < TILE_WIDTH
-        && (t1.position.y - coordinates.y).abs() < TILE_HEIGHT
-    {
-        if debug {
-            debug!(
-                " *** Found collision {}=({},{}), ({},{})",
-                t1.c, t1.position.x, t1.position.y, coordinates.x, coordinates.y
-            );
-        }
-        return true;
-    }
-
-    false
+fn check_collision_perfect(t1: &Tile, coordinates: &Vec2) -> bool {
+    return (t1.position.x - coordinates.x).abs() < TILE_WIDTH
+        && (t1.position.y - coordinates.y).abs() < TILE_HEIGHT;
 }
 
 impl GameLogic {
@@ -51,7 +40,7 @@ impl GameLogic {
     fn check_collision(&self, t1: &Tile, _map: &Vec<Tile>, coordinates: &Vec2) -> Option<usize> {
         for (index, tile) in self.map.iter().enumerate() {
             if tile.id != t1.id {
-                if check_collision_perfect(tile, &coordinates, true) {
+                if check_collision_perfect(tile, &coordinates) {
                     return Some(index);
                 }
             }
@@ -132,14 +121,15 @@ impl GameLogic {
         // let tile = self.map.get_mut(index).unwrap();
 
         if self.dragging {
-            let index = self
-                .get_tile_at(self.player.position.0, self.player.position.1)
-                .unwrap();
-
-            let index2 = self.get_tile_at(new_x, new_y);
-            let tile_underneath = self.map.get_mut(index).unwrap();
-            if tile_underneath.is_playable() && index2.is_none() {
-                tile_underneath.dragging_direction = Some(direction);
+            if let Some(index) = self.get_tile_at(self.player.position.0, self.player.position.1) {
+                let index2 = self.get_tile_at(new_x, new_y);
+                let tile_underneath = self.map.get_mut(index).unwrap();
+                if tile_underneath.is_playable()
+                    && tile_underneath.looping == false
+                    && index2.is_none()
+                {
+                    tile_underneath.dragging_direction = Some(direction);
+                }
             }
         }
         self.player.position.0 = new_x;
@@ -163,41 +153,59 @@ impl GameLogic {
         None
     }
 
-    fn new_handle_falling(&self, tile: &Tile) -> Option<TileChange> {
-        if tile.c == '|' || tile.c == '~' {
-            return None;
+    fn can_push(&self, tile: &Tile, velocity: &Vec2) -> bool {
+        // A tile can be pushed/moved to a certan location
+        //  if it doesn't collide with anything on that location
+        // or, if it collides, that tile can be pushed as well.
+        if !tile.is_playable() {
+            return false;
         }
-        let new_position = tile.position + Vec2::new(0., SPEED);
-        if let Some(index) = self.check_collision(tile, &self.map, &new_position) {
-            let tile_underneath = self.map.get(index);
-            let tile_underneath = tile_underneath.unwrap();
-            if tile_underneath.c == '|' || tile_underneath.c == '~' {
-                debug!("Tile {} starts riding", tile.c);
-                return Some(TileChange::StartRiding(tile_underneath.velocity.clone()));
+        let new_position = tile.position + *velocity;
+        if let Some(index) = self.check_collision(&tile, &self.map, &new_position) {
+            let collider = self.map.get(index).unwrap();
+            return self.can_push(&collider, velocity);
+        }
+        true
+    }
+    fn new_handle_collision(&self, tile: &Tile, map: &Vec<Tile>) -> Option<TileChange> {
+        // Find out the next theorical coordinates
+        let new_position = tile.position + tile.velocity;
+        if let Some(index) = self.check_collision(&tile, &map, &new_position) {
+            // The tiles is moving and has collided with some other tile
+            let collider = self.map.get(index).unwrap();
+            if tile.c == '|' || tile.c == '~' {
+                if self.can_push(&collider, &tile.velocity) && tile.velocity != Vec2::new(0., SPEED)
+                {
+                    return None; 
+                } else {
+                    debug!("Cannot push, Tile {} bounces with {}", tile.c, collider.c);
+                    return Some(TileChange::Bounce);
+                }
+            } else if collider.riding {
+                return Some(TileChange::StartRiding(collider.velocity.clone()));
+            } else if tile.c != '|' && tile.c != '~' {
+                debug!("Tile {} stops", tile.c);
+                return Some(TileChange::Stop);
             }
         } else {
-            return Some(TileChange::Fall);
-        }
-        None
-    }
-    fn new_handle_movement(&self, tile: &Tile, map: &Vec<Tile>) -> Option<TileChange> {
-        if tile.velocity != Vec2::zero() {
-            // Find out the next theorical coordinates
-            let new_position = tile.position + tile.velocity;
-            if let Some(index) = self.check_collision(&tile, &map, &new_position) {
-                let collider = self.map.get(index).unwrap();
-                if (tile.c == '|' || tile.c == '~') && collider.riding == false {
-                    debug!("Tile {} bounces with {}", tile.c, collider.c);
-                    return Some(TileChange::Bounce);
-                } else if tile.c != '|' && tile.c != '~' {
-                    debug!("Tile {} stops", tile.c);
-                    return Some(TileChange::Stop);
+            // The tile won't collide. If it is not moving, should it fall?
+            if tile.velocity == Vec2::zero() {
+                let new_position = tile.position + Vec2::new(0., SPEED);
+                if let Some(index) = self.check_collision(&tile, &map, &new_position) {
+                    let tile_underneath = self.map.get(index).unwrap();
+                    if tile_underneath.c == '|' || tile_underneath.c == '~' {
+                        debug!("Tile {} starts riding", tile.c);
+                        return Some(TileChange::StartRiding(tile_underneath.velocity.clone()));
+                    } else {
+                        return Some(TileChange::Stop);
+                    }
+                } else {
+                    // There's nothing underneath, we should fall
+                    return Some(TileChange::Fall);
                 }
             }
-            return Some(TileChange::Move);
         }
-
-        None
+        return Some(TileChange::Move);
     }
 
     /// Given a map, return all tiles that should change.
@@ -207,15 +215,15 @@ impl GameLogic {
 
         for (index, tile) in map.iter().enumerate() {
             if tile.is_playable() {
-                if let Some(tc) = self.new_handle_movement(&tile, &map) {
+                if let Some(tc) = self.new_handle_collision(&tile, &map) {
                     changes.push((index, tc));
                 }
                 if let Some(tc) = self.new_handle_dragging(&tile) {
                     changes.push((index, tc));
                 }
-                if let Some(tc) = self.new_handle_falling(&tile) {
-                    changes.push((index, tc));
-                }
+                // if let Some(tc) = self.new_handle_falling(&tile) {
+                //     changes.push((index, tc));
+                // }
             }
         }
 
