@@ -91,7 +91,7 @@ impl GameLogic {
             dragging: false,
             score: 0,
             time_elpsed: 0,
-            fading_out: false
+            fading_out: false,
         }
     }
 
@@ -142,10 +142,20 @@ impl GameLogic {
         if let Some(direction) = &tile.dragging_direction {
             match direction {
                 Direction::Left | Direction::Right => {
-                    return Some(TileChange::Jump(Vec2::new(
+                    let coordinates = Vec2::new(
                         (self.player.position.0) as f32 * TILE_HEIGHT,
                         (self.player.position.1) as f32 * TILE_HEIGHT,
-                    )));
+                    );
+                    let collision = self.check_collision(&tile,
+                        &self.map,  &coordinates);
+                    if collision.is_none() {
+                        return Some(TileChange::Jump(Vec2::new(
+                            (self.player.position.0) as f32 * TILE_HEIGHT,
+                            (self.player.position.1) as f32 * TILE_HEIGHT,
+                        )));
+                    }else{
+                        return Some(TileChange::Stop)
+                    }
                 }
                 Direction::None => return None,
                 Direction::Up => return None,
@@ -234,7 +244,7 @@ impl GameLogic {
             if tile.is_playable() {
                 if tile.fade_step > 0 {
                     changes.push((index, TileChange::FadeOut));
-                } else  if self.fading_out == false {
+                } else if self.fading_out == false {
                     if let Some(tc) = self.new_handle_collision(&tile, &map) {
                         changes.push((index, tc));
                     }

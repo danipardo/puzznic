@@ -73,6 +73,7 @@ pub fn handle_move_tiles(level: &mut game_logic::GameLogic, _mixer: &mut Mixer) 
         match tile_change {
             TileChange::Stop => {
                 t.velocity = Vec2::zero();
+                t.dragging_direction = None;
             }
             TileChange::Move => {
                 // println!(
