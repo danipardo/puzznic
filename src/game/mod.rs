@@ -2,8 +2,8 @@ pub(crate) mod game_logic;
 pub mod levels;
 pub(crate) mod sound;
 pub mod tile;
-use core::time;
-use std::thread;
+
+
 
 use macroquad::prelude::*;
 

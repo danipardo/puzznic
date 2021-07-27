@@ -1,7 +1,7 @@
 
 use quad_snd::{
-    decoder::{read_ogg, read_wav_ext},
-    mixer::{PlaybackStyle, SoundMixer},
+    decoder::{read_ogg },
+    mixer::{ SoundMixer},
 };
 
 pub enum Sound {
