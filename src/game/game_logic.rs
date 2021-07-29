@@ -1,8 +1,9 @@
 use std::{collections::HashMap};
+use macroquad::prelude::*;
+use crate::game::tile::TileChange;
+use super::{playing_state::*, sound::Mixer, tile::Tile};
 
-use super::*;
-
-pub struct GameLogic {
+pub struct PlayingState {
     pub map: Vec<Tile>,
     pub texture_map: Texture2D, // single image that contains all the tiles
     pub tile_info: HashMap<char, u32>, // image offset of each tile in the main image
@@ -20,7 +21,7 @@ fn check_collision_perfect(t1: &Tile, coordinates: &Vec2) -> bool {
         && (t1.position.y - coordinates.y).abs() < TILE_HEIGHT;
 }
 
-impl GameLogic {
+impl PlayingState {
     pub fn get_tile_texture_params(&self, c: char) -> DrawTextureParams {
         let offset = *self
             .tile_info
@@ -82,7 +83,7 @@ impl GameLogic {
         tile_info.insert('|', 112u32);
         tile_info.insert('-', 128u32);
 
-        GameLogic {
+        PlayingState {
             map: vec![],
             texture_map,
             tile_info,

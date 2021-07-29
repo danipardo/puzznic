@@ -1,31 +1,26 @@
-use macroquad::prelude::*;
 use async_trait::async_trait;
+use macroquad::prelude::*;
 
-use super::states::Playable;
+use super::states::{Playable, StateType};
 
 pub struct MenuState;
 
-
-
 impl MenuState {
-
-    pub fn new() -> Self{
-
-        MenuState{
-
-        }
+    pub fn new() -> Self {
+        MenuState {}
     }
 }
 #[async_trait]
 impl Playable for MenuState {
-     async fn run(&self) -> super::states::StateType {
-
-        while !is_key_down(KeyCode::Escape) {
+    async fn run(&mut self) -> StateType {
+        loop {
             clear_background(RED);
             next_frame().await;
+            if is_key_pressed(KeyCode::Escape) {
+                break;
+            }
         }
-        
-        super::states::StateType::Playing(1)
 
+        StateType::Playing(1)
     }
 }

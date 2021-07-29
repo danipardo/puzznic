@@ -1,5 +1,7 @@
 
-use super::*;
+use crate::game::playing_state::{SPEED, TILE_HEIGHT};
+use super::tile::*;
+use macroquad::prelude::*;
 
 pub fn load_level(n: u32) -> (Vec<Tile>, usize, usize) {
     let s = std::fs::read_to_string(format!("levels/{}.txt", n)).unwrap();
@@ -42,6 +44,6 @@ pub fn load_level(n: u32) -> (Vec<Tile>, usize, usize) {
         }
     }
 
-    println!("Map dimensions : {},{}, tiles: {}", map_width, map_height, map.len());
-    (map, *map_width, map_height)
+    // println!("Map dimensions : {},{}, tiles: {}", map_width, map_height, map.len());
+     (map, *map_width, map_height)
 }

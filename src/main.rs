@@ -1,5 +1,5 @@
 use game::{levels, states::{GameState, StateType}};
-use macroquad::prelude::Conf;
+use macroquad::prelude::{Conf, debug};
 pub mod game;
 
 // fn window_conf() -> Conf {

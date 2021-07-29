@@ -1,6 +1,6 @@
 use macroquad::prelude::Vec2;
 
-use super::Direction;
+use super::playing_state::Direction;
 
 #[derive(Debug)]
 pub struct Tile {
