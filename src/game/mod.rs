@@ -2,8 +2,8 @@ pub(crate) mod game_logic;
 pub mod levels;
 pub(crate) mod sound;
 pub mod tile;
-
-
+pub mod states;
+pub mod menu_state;
 
 use macroquad::prelude::*;
 
@@ -52,7 +52,7 @@ pub fn handle_draw_map(level: &mut game_logic::GameLogic) -> bool {
            
                 draw_texture_ex(
                     level.texture_map,
-                    tile.position.x,
+                    tile.position.x + 100.,
                     tile.position.y,
                     WHITE,
                     level.get_tile_texture_params(tile.c),
@@ -150,13 +150,16 @@ pub fn handle_move_player(level: &mut game_logic::GameLogic, mixer: &mut Mixer) 
 }
 pub async fn play_level(level: &mut game_logic::GameLogic) {
     //    let camera = Camera2D::from_display_rect(Rect::new(0., 0., screen_width(), screen_height()));
-    let camera = Camera2D::from_display_rect(Rect::new(0., 0., 320., 200.));
+
+
+    let desired_ratio = 320./200. as f32;
 
     let mut mixer = sound::Mixer::new();
     //  mixer.play_sound(sound::Sound::LevelIntro);
 
     loop {
-
+        let physical_ratio = screen_width() / screen_height();
+        let camera = Camera2D::from_display_rect(Rect::new(0., 0., 320. * physical_ratio/desired_ratio, 200.));
         clear_background(GRAY);
         set_camera(camera);
         if handle_move_player(level, &mut mixer) {

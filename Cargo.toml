@@ -7,5 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+async-trait = "0.1.51"
 macroquad = { git = "https://github.com/not-fl3/macroquad.git" }
 quad-snd = { git = "https://github.com/not-fl3/quad-snd" }
