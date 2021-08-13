@@ -1,16 +1,14 @@
+use macroquad::audio::{AudioContext, Sound};
 
-use quad_snd::{
-    decoder::{read_ogg },
-    mixer::{ SoundMixer},
-};
 
-pub enum Sound {
+
+
+pub enum Sounds {
     MOVE,
     LevelIntro,
 }
 
 pub struct Mixer<'a> {
-    mixer: SoundMixer,
     level_intro: &'a [u8],
     player_move: &'a [u8],
 
@@ -18,22 +16,19 @@ pub struct Mixer<'a> {
 impl Mixer<'_> {
     pub fn new() -> Self {
         Mixer {
-            mixer: SoundMixer::new(),
             level_intro: include_bytes!("../../sound/ogg/1 - Track 1.ogg"),
             player_move: include_bytes!("../../sound/ogg/SFX 1.ogg"),
         }
     }
-    pub fn play_sound(&mut self, snd: Sound) {
-        
+    pub fn play_sound(&mut self, snd: Sounds) {
+        let mut ctx = AudioContext::new();
 
         match snd {
-            Sound::MOVE => {
-                let player_move = read_ogg(self.player_move).unwrap();
-                self.mixer.play(player_move);
+            Sounds::MOVE => {
+             //   let mut sound =macroquad::audio::load_sound(&mut ctx, self.level_intro).await.unwrap();
+//                sound.play(&mut ctx, Default::default());
             }
-            Sound::LevelIntro => {
-                let level_intro = read_ogg(self.level_intro).unwrap();
-                self.mixer.play(level_intro);
+            Sounds::LevelIntro => {
 
             }
         }

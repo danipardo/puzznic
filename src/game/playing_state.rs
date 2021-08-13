@@ -157,7 +157,7 @@ impl Playable for PlayingState {
                 200.,
             ));
             clear_background(GRAY);
-            set_camera(camera);
+            set_camera(&camera);
             handle_move_player(self, &mut mixer);
             if !is_key_down(KeyCode::Space) {
                 handle_move_tiles(self, &mut mixer);

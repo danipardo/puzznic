@@ -33,6 +33,8 @@ impl PlayingState {
             source: Some(Rect::new(offset, 0., TILE_WIDTH as f32, TILE_HEIGHT as f32)),
             rotation: 0.,
             pivot: None,
+            flip_x: false,
+            flip_y: false,
         };
 
         params
@@ -67,8 +69,9 @@ impl PlayingState {
         self.player.position = (width / 2 - 1, height / 2)
     }
     pub async fn new() -> Self {
-        let texture_map = load_texture("img/tiles.png").await;
-        set_texture_filter(texture_map, FilterMode::Nearest);
+        let texture_map = load_texture("img/tiles.png").await.unwrap();
+     //   set_texture_filter(texture_map, FilterMode::Nearest);
+        texture_map.set_filter(FilterMode::Nearest);
 
         let mut tile_info = HashMap::new();
         tile_info.insert('G', 0u32);

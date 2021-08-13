@@ -26,7 +26,7 @@ impl GameState {
     pub async fn run(&self) -> StateType {
         match self.state {
             StateType::Menu => {
-                let mut menu = MenuState::new();
+                let mut menu = MenuState::new().await;
                 return menu.run().await;
             },
             StateType::Playing(level) => {

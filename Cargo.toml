@@ -8,5 +8,4 @@ edition = "2018"
 
 [dependencies]
 async-trait = "0.1.51"
-macroquad = { git = "https://github.com/not-fl3/macroquad.git" }
-quad-snd = { git = "https://github.com/not-fl3/quad-snd" }
+macroquad = "0.3.7"

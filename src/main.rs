@@ -2,15 +2,15 @@ use game::{levels, states::{GameState, StateType}};
 use macroquad::prelude::{Conf, debug};
 pub mod game;
 
-// fn window_conf() -> Conf {
-//     Conf {
-//         window_title: "test".to_owned(),
-//         window_width: 413 * 3,
-//         window_height: 250 * 3,
-//         ..Default::default()
-//     }
-// }
- #[macroquad::main("test")]
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "Puzznic".to_owned(),
+        window_width: 320 * 3,
+        window_height: 200 * 3,
+        ..Default::default()
+    }
+}
+ #[macroquad::main(window_conf)]
 async fn main() {
 
     let mut state = GameState::new(StateType::Menu);
