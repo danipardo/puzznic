@@ -41,12 +41,12 @@ pub fn handle_draw_player(level: &mut PlayingState) {
 pub fn handle_draw_map(level: &mut PlayingState) -> bool {
     // draw a grey background
 
-    let (offset_x, offset_y) = (120., 5.);
+   //  let (offset_x, offset_y) = (120., 5.);
 
     for tile in &level.blanks {
         macroquad::shapes::draw_rectangle(
-            tile.position.x + offset_x,
-            tile.position.y + offset_y,
+            tile.position.x + level.offset_x,
+            tile.position.y + level.offset_y,
             TILE_HEIGHT,
             TILE_HEIGHT,
             BLACK,
@@ -63,8 +63,8 @@ pub fn handle_draw_map(level: &mut PlayingState) -> bool {
         if tile.fade_step % 4 == 0 {
             draw_texture_ex(
                 level.texture_map,
-                tile.position.x + offset_x,
-                tile.position.y + offset_y,
+                tile.position.x + level.offset_x,
+                tile.position.y + level.offset_y,
                 WHITE,
                 level.get_tile_texture_params(tile.c),
             );

@@ -31,11 +31,11 @@ impl GameState {
             }
             StateType::Playing(level) => {
                 // Start the game
-                let (map, blanks, width, height) = levels::load_level(1);
+                let level_info = levels::load_level(104);
 
                 let mut game = PlayingState::new().await;
 
-                game.set_level(map, blanks, width, height).await;
+                game.set_level(level_info).await;
                 return game.run().await;
 
                 //                play_level(&mut game_state).await;

@@ -12,12 +12,23 @@ pub struct PlayingState {
     pub tile_info: HashMap<char, u32>, // image offset of each tile in the main image
     pub dimensions: (usize, usize),    // map dimensions,
     pub tiles_remaining: HashMap<char, u8>, // used for displaying the score
+    pub offset_x: f32,
+    pub offset_y: f32,
     pub font: Font,
     pub player: Player,
     pub score: u32,
     pub time_elpsed: u32,
     pub fading_out: bool,
     pub dragging: bool,
+}
+
+pub struct LevelInfo {
+    pub tiles: Vec<Tile>,
+    pub blanks: Vec<Tile>,
+    pub width: usize,
+    pub height: usize,
+    pub offset_x: f32,
+    pub offset_y: f32,
 }
 
 /// AABB collision detection, returns true if collision found
@@ -68,17 +79,14 @@ impl PlayingState {
         None
     }
 
-    pub async fn set_level(
-        &mut self,
-        map: Vec<Tile>,
-        blanks: Vec<Tile>,
-        width: usize,
-        height: usize,
-    ) {
-        self.map = map;
-        self.blanks = blanks;
-        self.dimensions = (width, height);
-        self.player.position = (width / 2 - 1, height / 2)
+    pub async fn set_level(&mut self, info: LevelInfo) {
+        self.map = info.tiles;
+        self.blanks = info.blanks;
+        self.dimensions = (info.width, info.height);
+        self.player.position = (info.width / 2 - 1, info.height / 2);
+        self.offset_x = info.offset_x;
+        self.offset_y = info.offset_y;
+
     }
     pub async fn new() -> Self {
         let texture_map = load_texture("img/tiles.png").await.unwrap();
@@ -120,6 +128,8 @@ impl PlayingState {
             tiles_remaining: HashMap::new(),
             scoreboard_texture: score_texture,
             brick_decoration: brick_texture,
+            offset_x: 0.0,
+            offset_y: 0.0
         }
     }
 
@@ -228,7 +238,7 @@ impl PlayingState {
             }
         } else {
             // The tile won't collide. If it is not moving, should it fall?
-            if tile.velocity == Vec2::zero() {
+            if tile.velocity == Vec2::ZERO {
                 let new_position = tile.position + Vec2::new(0., SPEED);
                 if let Some(index) = self.check_collision(&tile, &map, &new_position) {
                     let tile_underneath = self.map.get(index).unwrap();
