@@ -6,8 +6,11 @@ use super::{playing_state::*, sound::Mixer, tile::Tile};
 pub struct PlayingState {
     pub map: Vec<Tile>,
     pub texture_map: Texture2D, // single image that contains all the tiles
+    pub scoreboard_texture: Texture2D,
     pub tile_info: HashMap<char, u32>, // image offset of each tile in the main image
-    pub dimensions: (usize, usize), // map dimensions
+    pub dimensions: (usize, usize), // map dimensions,
+    pub tiles_remaining: HashMap<char, u8>,  // used for displaying the score
+    pub font: Font,
     pub player: Player,
     pub score: u32,
     pub time_elpsed: u32,
@@ -72,6 +75,7 @@ impl PlayingState {
         let texture_map = load_texture("img/tiles.png").await.unwrap();
      //   set_texture_filter(texture_map, FilterMode::Nearest);
         texture_map.set_filter(FilterMode::Nearest);
+        let font = load_ttf_font("Nintendo-NES-Font.ttf").await.unwrap();
 
         let mut tile_info = HashMap::new();
         tile_info.insert('G', 0u32);
@@ -86,9 +90,13 @@ impl PlayingState {
         tile_info.insert('|', 112u32);
         tile_info.insert('-', 128u32);
 
+        let score_texture = load_texture("img/scoreboard.png").await.unwrap();
+        score_texture.set_filter(FilterMode::Nearest);
+
         PlayingState {
             map: vec![],
             texture_map,
+            font,
             tile_info,
             player: Player { position: (0, 0) },
             dimensions: (0, 0),
@@ -96,6 +104,9 @@ impl PlayingState {
             score: 0,
             time_elpsed: 0,
             fading_out: false,
+            tiles_remaining: HashMap::new(),
+            scoreboard_texture: score_texture
+            
         }
     }
 

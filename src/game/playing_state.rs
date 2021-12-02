@@ -3,7 +3,12 @@ use macroquad::prelude::*;
 
 use crate::game::tile::TileChange;
 
-use super::{game_logic::{self, PlayingState}, menu_state::MenuState, sound::{self, Mixer}, states::{Playable, StateType}};
+use super::{
+    game_logic::{self, PlayingState},
+    menu_state::MenuState,
+    sound::{self, Mixer},
+    states::{Playable, StateType},
+};
 
 // use self::{sound::Mixer, tile::Tile, tile::TileChange};
 
@@ -49,8 +54,8 @@ pub fn handle_draw_map(level: &mut PlayingState) -> bool {
         if tile.fade_step % 4 == 0 {
             draw_texture_ex(
                 level.texture_map,
-                tile.position.x + 100.,
-                tile.position.y,
+                tile.position.x + 120.,
+                tile.position.y + 5.,
                 WHITE,
                 level.get_tile_texture_params(tile.c),
             );
@@ -112,9 +117,7 @@ pub fn handle_move_tiles(level: &mut PlayingState, _mixer: &mut Mixer) {
     }
     level.map.retain(|e| !drain.contains(&e.id));
 }
-pub fn handle_move_player(level: &mut PlayingState, mixer: &mut Mixer)  {
- 
-
+pub fn handle_move_player(level: &mut PlayingState, mixer: &mut Mixer) {
     if is_key_pressed(KeyCode::Left) {
         level.move_player(Direction::Left, mixer);
     }
@@ -135,11 +138,23 @@ pub fn handle_move_player(level: &mut PlayingState, mixer: &mut Mixer)  {
     if is_key_pressed(KeyCode::Down) {
         level.move_player(Direction::Down, mixer);
     }
-   
-
-    
 }
 
+pub fn draw_score(level: &mut PlayingState) {
+
+   draw_texture(level.scoreboard_texture, 0.,0., WHITE);
+   let (fs, fc, fa) = camera_font_scale(6.);
+    let tp = TextParams {
+                font: level.font,
+                font_size: fs,
+                font_scale: fc,
+                font_scale_aspect: fa,
+                color: GREEN,
+            };
+
+    draw_text_ex("SCORE: 0", 10., 13., tp);
+
+}
 #[async_trait]
 impl Playable for PlayingState {
     async fn run(&mut self) -> super::states::StateType {
@@ -150,13 +165,27 @@ impl Playable for PlayingState {
 
         loop {
             let physical_ratio = screen_width() / screen_height();
+            println!(
+                "Disp.Ratio: {}, Other: {}",
+                physical_ratio,
+                (physical_ratio / &desired_ratio)
+            );
+            let mut width_factor = 1.;
+            let mut height_factor = 1.;
+
+            if physical_ratio / desired_ratio > 1. {
+                width_factor = physical_ratio / desired_ratio;
+            } else {
+                height_factor = physical_ratio / desired_ratio;
+            }
             let camera = Camera2D::from_display_rect(Rect::new(
                 0.,
                 0.,
-                320. * physical_ratio / desired_ratio,
-                200.,
+                320. * width_factor,
+                200. / height_factor,
             ));
-            clear_background(GRAY);
+            clear_background(BLACK);
+            draw_score(&mut self);
             set_camera(&camera);
             handle_move_player(self, &mut mixer);
             if !is_key_down(KeyCode::Space) {
@@ -178,6 +207,6 @@ impl Playable for PlayingState {
             }
         }
 
-         StateType::Menu
+        StateType::Menu
     }
 }
