@@ -1,5 +1,8 @@
-use game::{levels, states::{GameState, StateType}};
-use macroquad::prelude::{Conf, debug};
+use game::{
+    levels,
+    states::{GameState, StateType},
+};
+use macroquad::prelude::{debug, Conf};
 pub mod game;
 
 fn window_conf() -> Conf {
@@ -10,17 +13,13 @@ fn window_conf() -> Conf {
         ..Default::default()
     }
 }
- #[macroquad::main(window_conf)]
+#[macroquad::main(window_conf)]
 async fn main() {
-
     let mut state = GameState::new(StateType::Menu);
 
-
-    while state.state != StateType::Quit{
-
+    while state.state != StateType::Quit {
         let new_state = state.run().await;
         state = GameState::new(new_state);
-
     }
 
     /*/
@@ -31,13 +30,12 @@ async fn main() {
     game::play_level(&mut game_state).await;
 
     */
-   
- }
+}
 
 #[cfg(test)]
 mod tests {
-    use std::cell::RefCell;
     use crate::game::levels;
+    use std::cell::RefCell;
 
     #[test]
     fn test1() {
@@ -63,9 +61,7 @@ mod tests {
     }
 
     #[test]
-    fn load_level1(){
-
+    fn load_level1() {
         levels::load_level(1);
-
     }
 }

@@ -1,15 +1,17 @@
-use std::{collections::HashMap};
-use macroquad::prelude::*;
-use crate::game::tile::TileChange;
 use super::{playing_state::*, sound::Mixer, tile::Tile};
+use crate::game::tile::TileChange;
+use macroquad::prelude::*;
+use std::collections::HashMap;
 
 pub struct PlayingState {
     pub map: Vec<Tile>,
+    pub blanks: Vec<Tile>,      // empty spaces to draw the background
     pub texture_map: Texture2D, // single image that contains all the tiles
     pub scoreboard_texture: Texture2D,
+    pub brick_decoration: Texture2D,
     pub tile_info: HashMap<char, u32>, // image offset of each tile in the main image
-    pub dimensions: (usize, usize), // map dimensions,
-    pub tiles_remaining: HashMap<char, u8>,  // used for displaying the score
+    pub dimensions: (usize, usize),    // map dimensions,
+    pub tiles_remaining: HashMap<char, u8>, // used for displaying the score
     pub font: Font,
     pub player: Player,
     pub score: u32,
@@ -66,14 +68,21 @@ impl PlayingState {
         None
     }
 
-    pub async fn set_level(&mut self, map: Vec<Tile>, width: usize, height: usize) {
+    pub async fn set_level(
+        &mut self,
+        map: Vec<Tile>,
+        blanks: Vec<Tile>,
+        width: usize,
+        height: usize,
+    ) {
         self.map = map;
+        self.blanks = blanks;
         self.dimensions = (width, height);
         self.player.position = (width / 2 - 1, height / 2)
     }
     pub async fn new() -> Self {
         let texture_map = load_texture("img/tiles.png").await.unwrap();
-     //   set_texture_filter(texture_map, FilterMode::Nearest);
+        //   set_texture_filter(texture_map, FilterMode::Nearest);
         texture_map.set_filter(FilterMode::Nearest);
         let font = load_ttf_font("Nintendo-NES-Font.ttf").await.unwrap();
 
@@ -93,8 +102,12 @@ impl PlayingState {
         let score_texture = load_texture("img/scoreboard.png").await.unwrap();
         score_texture.set_filter(FilterMode::Nearest);
 
+        let brick_texture = load_texture("img/brick_decoration.png").await.unwrap();
+        brick_texture.set_filter(FilterMode::Nearest);
+
         PlayingState {
             map: vec![],
+            blanks: vec![],
             texture_map,
             font,
             tile_info,
@@ -105,8 +118,8 @@ impl PlayingState {
             time_elpsed: 0,
             fading_out: false,
             tiles_remaining: HashMap::new(),
-            scoreboard_texture: score_texture
-            
+            scoreboard_texture: score_texture,
+            brick_decoration: brick_texture,
         }
     }
 
@@ -161,15 +174,14 @@ impl PlayingState {
                         (self.player.position.0) as f32 * TILE_HEIGHT,
                         (self.player.position.1) as f32 * TILE_HEIGHT,
                     );
-                    let collision = self.check_collision(&tile,
-                        &self.map,  &coordinates);
+                    let collision = self.check_collision(&tile, &self.map, &coordinates);
                     if collision.is_none() {
                         return Some(TileChange::Jump(Vec2::new(
                             (self.player.position.0) as f32 * TILE_HEIGHT,
                             (self.player.position.1) as f32 * TILE_HEIGHT,
                         )));
-                    }else{
-                        return Some(TileChange::Stop)
+                    } else {
+                        return Some(TileChange::Stop);
                     }
                 }
                 Direction::None => return None,

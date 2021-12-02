@@ -1,8 +1,5 @@
 use macroquad::audio::{AudioContext, Sound};
 
-
-
-
 pub enum Sounds {
     MOVE,
     LevelIntro,
@@ -11,7 +8,6 @@ pub enum Sounds {
 pub struct Mixer<'a> {
     level_intro: &'a [u8],
     player_move: &'a [u8],
-
 }
 impl Mixer<'_> {
     pub fn new() -> Self {
@@ -25,12 +21,10 @@ impl Mixer<'_> {
 
         match snd {
             Sounds::MOVE => {
-             //   let mut sound =macroquad::audio::load_sound(&mut ctx, self.level_intro).await.unwrap();
-//                sound.play(&mut ctx, Default::default());
+                //   let mut sound =macroquad::audio::load_sound(&mut ctx, self.level_intro).await.unwrap();
+                //                sound.play(&mut ctx, Default::default());
             }
-            Sounds::LevelIntro => {
-
-            }
+            Sounds::LevelIntro => {}
         }
     }
 }

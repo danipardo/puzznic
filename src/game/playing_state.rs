@@ -39,10 +39,19 @@ pub fn handle_draw_player(level: &mut PlayingState) {
 }
 
 pub fn handle_draw_map(level: &mut PlayingState) -> bool {
-    //  let dimensions = level.dimensions;
-    // let mut start_x = 0.0;
-    // let mut start_y = 0.0;
+    // draw a grey background
 
+    let (offset_x, offset_y) = (120., 5.);
+
+    for tile in &level.blanks {
+        macroquad::shapes::draw_rectangle(
+            tile.position.x + offset_x,
+            tile.position.y + offset_y,
+            TILE_HEIGHT,
+            TILE_HEIGHT,
+            BLACK,
+        );
+    }
     let mut playable_pieces = 0;
     //    for y in 0..dimensions.1 {
     //      for x in 0..dimensions.0 {
@@ -54,8 +63,8 @@ pub fn handle_draw_map(level: &mut PlayingState) -> bool {
         if tile.fade_step % 4 == 0 {
             draw_texture_ex(
                 level.texture_map,
-                tile.position.x + 120.,
-                tile.position.y + 5.,
+                tile.position.x + offset_x,
+                tile.position.y + offset_y,
                 WHITE,
                 level.get_tile_texture_params(tile.c),
             );
@@ -141,19 +150,32 @@ pub fn handle_move_player(level: &mut PlayingState, mixer: &mut Mixer) {
 }
 
 pub fn draw_score(level: &mut PlayingState) {
-
-   draw_texture(level.scoreboard_texture, 0.,0., WHITE);
-   let (fs, fc, fa) = camera_font_scale(6.);
+    draw_texture(level.scoreboard_texture, 0., 0., WHITE);
+    let (fs, fc, fa) = camera_font_scale(6.);
     let tp = TextParams {
-                font: level.font,
-                font_size: fs,
-                font_scale: fc,
-                font_scale_aspect: fa,
-                color: GREEN,
-            };
+        font: level.font,
+        font_size: fs,
+        font_scale: fc,
+        font_scale_aspect: fa,
+        color: GREEN,
+    };
 
     draw_text_ex("SCORE: 0", 10., 13., tp);
 
+    for y in 0..25 {
+        let mut offset = 0.;
+        if y % 2 > 0 {
+            offset += 8.;
+        }
+        for x in 0..13 {
+            draw_texture(
+                level.brick_decoration,
+                101. + offset + (x * 16) as f32,
+                2. + (y * 8) as f32,
+                WHITE,
+            )
+        }
+    }
 }
 #[async_trait]
 impl Playable for PlayingState {
@@ -165,11 +187,11 @@ impl Playable for PlayingState {
 
         loop {
             let physical_ratio = screen_width() / screen_height();
-            println!(
-                "Disp.Ratio: {}, Other: {}",
-                physical_ratio,
-                (physical_ratio / &desired_ratio)
-            );
+            // println!(
+            //     "Disp.Ratio: {}, Other: {}",
+            //     physical_ratio,
+            //     (physical_ratio / &desired_ratio)
+            // );
             let mut width_factor = 1.;
             let mut height_factor = 1.;
 

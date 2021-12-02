@@ -14,26 +14,23 @@ pub struct Tile {
     pub dragging_direction: Option<Direction>,
 }
 
-
-
 impl PartialEq for Tile {
     fn eq(&self, other: &Self) -> bool {
-        return self.id == other.id
+        return self.id == other.id;
     }
 }
 
 impl Tile {
-    
     pub fn new(id: u32, c: char, x: f32, y: f32) -> Tile {
-        let mut t = Tile{
+        let mut t = Tile {
             id: id,
             c: c,
-            position: Vec2::new(x,y),
+            position: Vec2::new(x, y),
             velocity: Vec2::zero(),
             looping: false,
             dragging_direction: None,
             riding: false,
-            fade_step: 0
+            fade_step: 0,
         };
 
         t.position = Vec2::new(x, y);
@@ -47,9 +44,6 @@ impl Tile {
     pub fn is_playable(&self) -> bool {
         return self.c != ' ' && self.c != '-';
     }
-
-   
-   
 }
 
 pub enum TileChange {
