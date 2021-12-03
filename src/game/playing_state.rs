@@ -164,6 +164,10 @@ pub fn draw_score(level: &mut PlayingState) {
 
     draw_text_ex("SCORE: 0", 10., 13., tp);
 
+    
+    draw_text_ex(format!("LEVEL: {}", level.level).as_str(), 10., 22., tp);
+    draw_text_ex(format!("TIME: {}", level.time).as_str(), 10., 31., tp);
+
     let mut text_y = 50.;
 
     // Generate tiles_remaining HashMap

@@ -4,11 +4,14 @@ use crate::game::{
     playing_state::{SPEED, TILE_HEIGHT, TILE_WIDTH},
 };
 use macroquad::prelude::*;
+use regex::Regex;
 
 pub fn load_level(n: usize) -> LevelInfo {
     let s = std::fs::read_to_string(format!("levels/{}.txt", n)).unwrap();
     let tokens: Vec<&str> = s.split("\n").collect();
 
+    let time = extract_seconds(&tokens[2]);
+    let tokens = &tokens[4..];
     let mut map = vec![];
     let mut blanks = vec![]; // a vec of blank tiles, to draw the background
 
@@ -71,7 +74,7 @@ pub fn load_level(n: usize) -> LevelInfo {
     }
 
     let offset_y = (200. - map_height as f32 * TILE_HEIGHT) / 2.;
-    let offset_x = (320. +100. - *map_width as f32 * TILE_WIDTH) / 2.;
+    let offset_x = (320. + 100. - *map_width as f32 * TILE_WIDTH) / 2.;
     let info = LevelInfo {
         tiles: map,
         blanks,
@@ -79,7 +82,19 @@ pub fn load_level(n: usize) -> LevelInfo {
         height: map_height,
         offset_x,
         offset_y,
+        level: n,
+        time: time,
     };
 
     info
+}
+
+fn extract_seconds(str: &str) -> u16 {
+    let re = Regex::new(r"Time: (\d)'(\d{2})").unwrap();
+    let captures = re.captures(str).unwrap();
+    let minutes: u16 = captures.get(1).unwrap().as_str().parse().unwrap();
+    let seconds: u16 = captures.get(2).unwrap().as_str().parse().unwrap();
+
+    println!("Found time: {},{}", minutes, seconds);
+    return minutes * 60 + seconds;
 }

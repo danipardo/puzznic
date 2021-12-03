@@ -53,7 +53,6 @@ impl Playable for MenuState {
             }
             let camera = Camera2D::from_display_rect(Rect::new(0., 0., w, h));
 
-            debug!("r: {}", physical_ratio / desired_ratio);
             set_camera(&camera);
 
             let (fs, fc, fa) = camera_font_scale(10.);

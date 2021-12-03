@@ -11,6 +11,8 @@ pub struct PlayingState {
     pub brick_decoration: Texture2D,
     pub tile_info: HashMap<char, u32>, // image offset of each tile in the main image
     pub dimensions: (usize, usize),    // map dimensions,
+    pub level: usize,
+    pub time: u16,
     pub offset_x: f32,
     pub offset_y: f32,
     pub font: Font,
@@ -28,6 +30,8 @@ pub struct LevelInfo {
     pub height: usize,
     pub offset_x: f32,
     pub offset_y: f32,
+    pub level: usize,
+    pub time: u16
 }
 
 /// AABB collision detection, returns true if collision found
@@ -85,6 +89,8 @@ impl PlayingState {
         self.player.position = (info.width / 2 - 1, info.height / 2);
         self.offset_x = info.offset_x;
         self.offset_y = info.offset_y;
+        self.time = info.time;
+        self.level = info.level;
 
     }
     pub async fn new() -> Self {
@@ -128,6 +134,8 @@ impl PlayingState {
             brick_decoration: brick_texture,
             offset_x: 0.0,
             offset_y: 0.0,
+            level: 0,
+            time: 0,
         }
     }
 
