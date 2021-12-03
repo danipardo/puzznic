@@ -31,7 +31,7 @@ impl GameState {
             }
             StateType::Playing(level) => {
                 // Start the game
-                let level_info = levels::load_level(104);
+                let level_info = levels::load_level(level);
 
                 let mut game = PlayingState::new().await;
 

@@ -5,7 +5,7 @@ use crate::game::{
 };
 use macroquad::prelude::*;
 
-pub fn load_level(n: u32) -> LevelInfo {
+pub fn load_level(n: usize) -> LevelInfo {
     let s = std::fs::read_to_string(format!("levels/{}.txt", n)).unwrap();
     let tokens: Vec<&str> = s.split("\n").collect();
 

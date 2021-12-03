@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet, BTreeMap};
+
 use async_trait::async_trait;
 use macroquad::prelude::*;
 
@@ -31,8 +33,8 @@ pub enum Direction {
 pub fn handle_draw_player(level: &mut PlayingState) {
     // Draw player rectangle
     let (x, y) = (
-        level.player.position.0 as f32 * TILE_WIDTH * 1.0,
-        level.player.position.1 as f32 * TILE_WIDTH * 1.0,
+        level.offset_x + level.player.position.0 as f32 * TILE_WIDTH,
+        level.offset_y + level.player.position.1 as f32 * TILE_WIDTH,
     );
 
     draw_rectangle_lines(x, y, TILE_WIDTH * 1.0, TILE_HEIGHT * 1.0, 2., RED);
@@ -41,7 +43,7 @@ pub fn handle_draw_player(level: &mut PlayingState) {
 pub fn handle_draw_map(level: &mut PlayingState) -> bool {
     // draw a grey background
 
-   //  let (offset_x, offset_y) = (120., 5.);
+    //  let (offset_x, offset_y) = (120., 5.);
 
     for tile in &level.blanks {
         macroquad::shapes::draw_rectangle(
@@ -162,6 +164,27 @@ pub fn draw_score(level: &mut PlayingState) {
 
     draw_text_ex("SCORE: 0", 10., 13., tp);
 
+    let mut text_y = 50.;
+
+    // Generate tiles_remaining HashMap
+    let allowed = ['G', 'X', 'E', 'B', 'P', 'C', 'D'];
+    let mut tiles_remaining = BTreeMap::new();
+    for t in level.map.iter().filter(|t| allowed.contains(&t.c)) {
+        let count = tiles_remaining.entry(t.c).or_insert(0);
+        *count += 1;
+    }
+    // Draw the numer of tiles remaining
+    for (c, num) in &tiles_remaining{
+        draw_texture_ex(
+            level.texture_map,
+            50.,
+            text_y,
+            WHITE,
+            level.get_tile_texture_params(*c),
+        );
+        draw_text_ex(num.to_string().as_ref(), 50. + 24., text_y + 10., tp);
+        text_y += 20.;
+    }
     for y in 0..25 {
         let mut offset = 0.;
         if y % 2 > 0 {

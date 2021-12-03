@@ -11,7 +11,6 @@ pub struct PlayingState {
     pub brick_decoration: Texture2D,
     pub tile_info: HashMap<char, u32>, // image offset of each tile in the main image
     pub dimensions: (usize, usize),    // map dimensions,
-    pub tiles_remaining: HashMap<char, u8>, // used for displaying the score
     pub offset_x: f32,
     pub offset_y: f32,
     pub font: Font,
@@ -125,11 +124,10 @@ impl PlayingState {
             score: 0,
             time_elpsed: 0,
             fading_out: false,
-            tiles_remaining: HashMap::new(),
             scoreboard_texture: score_texture,
             brick_decoration: brick_texture,
             offset_x: 0.0,
-            offset_y: 0.0
+            offset_y: 0.0,
         }
     }
 
