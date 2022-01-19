@@ -1,30 +1,36 @@
-use macroquad::audio::{AudioContext, Sound};
+use macroquad::audio::Sound;
 
 pub enum Sounds {
     MOVE,
     LevelIntro,
+    Collided,
 }
 
-pub struct Mixer<'a> {
-    level_intro: &'a [u8],
-    player_move: &'a [u8],
+pub struct Mixer {
+    level_intro: Sound,
+    player_move: Sound,
+    collided: Sound
 }
-impl Mixer<'_> {
-    pub fn new() -> Self {
+impl Mixer {
+    pub async fn new() -> Self {
         Mixer {
-            level_intro: include_bytes!("../../sound/ogg/1 - Track 1.ogg"),
-            player_move: include_bytes!("../../sound/ogg/SFX 1.ogg"),
+            level_intro: macroquad::audio::load_sound("sound/ogg/1 - Track 1.ogg").await.unwrap(),
+            player_move: macroquad::audio::load_sound("sound/ogg/SFX 2.ogg").await.unwrap(),
+            collided: macroquad::audio::load_sound("sound/ogg/SFX 17.ogg").await.unwrap(),
         }
     }
-    pub fn play_sound(&mut self, snd: Sounds) {
-        let mut ctx = AudioContext::new();
-
+    pub async fn play_sound(&mut self, snd: Sounds) {
+        // let mut ctx = AudioContext::new();
         match snd {
             Sounds::MOVE => {
-                //   let mut sound =macroquad::audio::load_sound(&mut ctx, self.level_intro).await.unwrap();
-                //                sound.play(&mut ctx, Default::default());
+                macroquad::audio::play_sound_once(self.player_move);
             }
-            Sounds::LevelIntro => {}
+            Sounds::LevelIntro => {
+                macroquad::audio::play_sound_once(self.level_intro);
+            }
+            Sounds::Collided => {
+                macroquad::audio::play_sound_once(self.collided);
+            }
         }
     }
 }

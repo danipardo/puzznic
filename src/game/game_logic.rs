@@ -1,4 +1,4 @@
-use super::{playing_state::*, sound::Mixer, tile::Tile};
+use super::{playing_state::*, sound::{Mixer, self}, tile::Tile};
 use crate::game::tile::TileChange;
 use macroquad::prelude::*;
 use std::collections::HashMap;
@@ -139,7 +139,7 @@ impl PlayingState {
         }
     }
 
-    pub fn move_player(&mut self, direction: Direction, _mixer: &mut Mixer) {
+    pub async fn move_player(&mut self, direction: Direction, mixer: &mut Mixer) {
         let mut new_x: usize = self.player.position.0;
         let mut new_y: usize = self.player.position.1;
 
@@ -167,6 +167,7 @@ impl PlayingState {
         // let tile = self.map.get_mut(index).unwrap();
 
         if self.dragging {
+            mixer.play_sound(sound::Sounds::MOVE).await;
             if let Some(index) = self.get_tile_at(self.player.position.0, self.player.position.1) {
                 let index2 = self.get_tile_at(new_x, new_y);
                 let tile_underneath = self.map.get_mut(index).unwrap();

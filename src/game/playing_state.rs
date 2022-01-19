@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, BTreeMap};
+use std::collections::{BTreeMap};
 
 use async_trait::async_trait;
 use macroquad::prelude::*;
@@ -6,8 +6,7 @@ use macroquad::prelude::*;
 use crate::game::tile::TileChange;
 
 use super::{
-    game_logic::{self, PlayingState},
-    menu_state::MenuState,
+    game_logic::{PlayingState},
     sound::{self, Mixer},
     states::{Playable, StateType},
 };
@@ -76,7 +75,7 @@ pub fn handle_draw_map(level: &mut PlayingState) -> bool {
     playable_pieces == 0
 }
 
-pub fn handle_move_tiles(level: &mut PlayingState, _mixer: &mut Mixer) {
+pub async fn handle_move_tiles(level: &mut PlayingState, mixer: &mut Mixer) {
     let changes = level.next_map(&level.map);
     let mut drain: Vec<u32> = vec![];
     level.fading_out = false;
@@ -84,29 +83,29 @@ pub fn handle_move_tiles(level: &mut PlayingState, _mixer: &mut Mixer) {
         let t = level.map.get_mut(*index).unwrap();
         match tile_change {
             TileChange::Stop => {
-                t.velocity = Vec2::zero();
+                t.velocity = Vec2::ZERO;
                 t.dragging_direction = None;
             }
             TileChange::Move => {
-                // println!(
-                //     "Moving, I'm at {},{}, ({},{})",
-                //     change.0, change.1, t.position.x, t.position.y
-                // );
                 t.position = t.position + t.velocity;
             }
             TileChange::Jump(position) => {
                 t.position = *position;
-                t.velocity = Vec2::zero();
+                t.velocity = Vec2::ZERO;
                 t.dragging_direction = None;
             }
             TileChange::Bounce => {
                 t.velocity = t.velocity * -1.;
             }
             TileChange::FadeOut => {
+                if t.fade_step == 0 {
+                    mixer.play_sound(sound::Sounds::Collided).await;
+                }
                 t.fade_step = t.fade_step + 1;
                 level.fading_out = true;
                 if t.fade_step >= 50 {
                     drain.push(t.id);
+
                 }
             }
             TileChange::StartRiding(velocity) => {
@@ -128,16 +127,16 @@ pub fn handle_move_tiles(level: &mut PlayingState, _mixer: &mut Mixer) {
     }
     level.map.retain(|e| !drain.contains(&e.id));
 }
-pub fn handle_move_player(level: &mut PlayingState, mixer: &mut Mixer) {
+pub async fn handle_move_player(level: &mut PlayingState, mixer: &mut Mixer) {
     if is_key_pressed(KeyCode::Left) {
-        level.move_player(Direction::Left, mixer);
+        level.move_player(Direction::Left, mixer).await;
     }
     if is_key_pressed(KeyCode::Right) {
-        level.move_player(Direction::Right, mixer);
+        level.move_player(Direction::Right, mixer).await;
     }
 
     if is_key_pressed(KeyCode::Up) && !level.dragging {
-        level.move_player(Direction::Up, mixer);
+        level.move_player(Direction::Up, mixer).await;
     }
 
     if is_key_down(KeyCode::Space) {
@@ -147,7 +146,7 @@ pub fn handle_move_player(level: &mut PlayingState, mixer: &mut Mixer) {
     }
 
     if is_key_pressed(KeyCode::Down) {
-        level.move_player(Direction::Down, mixer);
+        level.move_player(Direction::Down, mixer).await;
     }
 }
 
@@ -164,7 +163,6 @@ pub fn draw_score(level: &mut PlayingState) {
 
     draw_text_ex("SCORE: 0", 10., 13., tp);
 
-    
     draw_text_ex(format!("LEVEL: {}", level.level).as_str(), 10., 22., tp);
     draw_text_ex(format!("TIME: {}", level.time).as_str(), 10., 31., tp);
 
@@ -178,7 +176,7 @@ pub fn draw_score(level: &mut PlayingState) {
         *count += 1;
     }
     // Draw the numer of tiles remaining
-    for (c, num) in &tiles_remaining{
+    for (c, num) in &tiles_remaining {
         draw_texture_ex(
             level.texture_map,
             50.,
@@ -208,9 +206,8 @@ pub fn draw_score(level: &mut PlayingState) {
 impl Playable for PlayingState {
     async fn run(&mut self) -> super::states::StateType {
         let desired_ratio = 320. / 200. as f32;
-
-        let mut mixer = sound::Mixer::new();
-        //  mixer.play_sound(sound::Sound::LevelIntro);
+        let mut mixer = sound::Mixer::new().await;
+        mixer.play_sound(sound::Sounds::LevelIntro).await;
 
         loop {
             let physical_ratio = screen_width() / screen_height();
@@ -236,9 +233,9 @@ impl Playable for PlayingState {
             clear_background(BLACK);
             draw_score(&mut self);
             set_camera(&camera);
-            handle_move_player(self, &mut mixer);
+            handle_move_player(self, &mut mixer).await;
             if !is_key_down(KeyCode::Space) {
-                handle_move_tiles(self, &mut mixer);
+                handle_move_tiles(self, &mut mixer).await;
             }
 
             // let ten_millis = time::Duration::from_millis(30);
@@ -256,6 +253,6 @@ impl Playable for PlayingState {
             }
         }
 
-        StateType::Menu
+        StateType::Playing(self.level + 1)
     }
 }

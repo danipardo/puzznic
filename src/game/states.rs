@@ -1,7 +1,7 @@
 use super::{
     game_logic::PlayingState,
     levels,
-    menu_state::{self, MenuState},
+    menu_state::{MenuState},
 };
 use async_trait::async_trait;
 

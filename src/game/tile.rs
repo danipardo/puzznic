@@ -26,7 +26,7 @@ impl Tile {
             id: id,
             c: c,
             position: Vec2::new(x, y),
-            velocity: Vec2::zero(),
+            velocity: Vec2::ZERO,
             looping: false,
             dragging_direction: None,
             riding: false,
