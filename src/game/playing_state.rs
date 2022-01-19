@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap};
+use std::collections::BTreeMap;
 
 use async_trait::async_trait;
 use macroquad::prelude::*;
@@ -6,7 +6,7 @@ use macroquad::prelude::*;
 use crate::game::tile::TileChange;
 
 use super::{
-    game_logic::{PlayingState},
+    game_logic::PlayingState,
     sound::{self, Mixer},
     states::{Playable, StateType},
 };
@@ -105,7 +105,6 @@ pub async fn handle_move_tiles(level: &mut PlayingState, mixer: &mut Mixer) {
                 level.fading_out = true;
                 if t.fade_step >= 50 {
                     drain.push(t.id);
-
                 }
             }
             TileChange::StartRiding(velocity) => {
@@ -248,8 +247,11 @@ impl Playable for PlayingState {
             handle_draw_player(self);
 
             next_frame().await;
+            if is_key_pressed(KeyCode::R) {
+                return StateType::Playing(self.level);
+            }
             if is_key_pressed(KeyCode::Escape) {
-                break;
+                return StateType::Menu;
             }
         }
 

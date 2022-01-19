@@ -20,15 +20,6 @@ async fn main() {
         let new_state = state.run().await;
         state = GameState::new(new_state);
     }
-
-    /*/
-    let (map, width, height) = levels::load_level(82);
-
-    let mut game_state = game::game_logic::GameLogic::new().await;
-    game_state.set_level(map, width, height).await;
-    game::play_level(&mut game_state).await;
-
-    */
 }
 
 #[cfg(test)]

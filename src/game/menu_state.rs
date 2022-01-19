@@ -102,11 +102,7 @@ impl Playable for MenuState {
                     _ => {}
                 }
             }
-            if is_key_pressed(KeyCode::Escape) {
-                break;
-            }
         }
 
-        StateType::Playing(1)
     }
 }
