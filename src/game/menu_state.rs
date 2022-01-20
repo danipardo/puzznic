@@ -64,7 +64,7 @@ impl Playable for MenuState {
                 color: GREEN,
             };
 
-            clear_background(BLACK);
+           // clear_background(BLACK);
             let bg_params = DrawTextureParams {
                 dest_size: Some(Vec2::new(320., 200.)),
                 source: Some(Rect::new(0., 0., 320., 200.)),
@@ -76,10 +76,10 @@ impl Playable for MenuState {
 
             draw_texture_ex(background, 0., 0., WHITE, bg_params);
 
-            draw_text_ex("PUZZNIC!", 110., 80., tp);
-            draw_text_ex("NEW GAME", 100., 120., self.get_text_params(0));
-            draw_text_ex("INSTRUCTIONS", 100., 140., self.get_text_params(1));
-            draw_text_ex("QUIT", 100., 160., self.get_text_params(2));
+            draw_text_ex("PUZZNIC!", 130., 80., tp);
+            draw_text_ex("NEW GAME", 140., 100., self.get_text_params(0));
+            draw_text_ex("INSTRUCTIONS", 120., 120., self.get_text_params(1));
+            draw_text_ex("QUIT", 155., 140., self.get_text_params(2));
             next_frame().await;
             if is_key_pressed(KeyCode::Down) {
                 self.selection += 1;

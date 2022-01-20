@@ -1,7 +1,7 @@
 use super::{
     game_logic::PlayingState,
     levels,
-    menu_state::{MenuState},
+    menu_state::{MenuState}
 };
 use async_trait::async_trait;
 
@@ -9,6 +9,7 @@ use async_trait::async_trait;
 pub enum StateType {
     Menu,
     Playing(usize),
+    ExitConfirm,
     Help,
     Quit,
 }

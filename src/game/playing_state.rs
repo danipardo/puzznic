@@ -209,6 +209,22 @@ impl Playable for PlayingState {
         mixer.play_sound(sound::Sounds::LevelIntro).await;
 
         loop {
+            if is_key_pressed(KeyCode::R) {
+                return StateType::Playing(self.level);
+            }
+
+            if self.exit_intent && is_key_pressed(KeyCode::Y) {
+                return StateType::Menu;
+            }
+
+            if is_key_pressed(KeyCode::Escape) {
+                self.exit_intent = !self.exit_intent;
+            }
+
+            if is_key_pressed(KeyCode::P) {
+                self.paused = !self.paused;
+            }
+
             let physical_ratio = screen_width() / screen_height();
             // println!(
             //     "Disp.Ratio: {}, Other: {}",
@@ -229,16 +245,15 @@ impl Playable for PlayingState {
                 320. * width_factor,
                 200. / height_factor,
             ));
-            clear_background(BLACK);
+
             draw_score(&mut self);
             set_camera(&camera);
-            handle_move_player(self, &mut mixer).await;
-            if !is_key_down(KeyCode::Space) {
-                handle_move_tiles(self, &mut mixer).await;
+            if !self.paused && !self.exit_intent {
+                handle_move_player(self, &mut mixer).await;
+                if !is_key_down(KeyCode::Space) {
+                    handle_move_tiles(self, &mut mixer).await;
+                }
             }
-
-            // let ten_millis = time::Duration::from_millis(30);
-            //  thread::sleep(ten_millis);
 
             if handle_draw_map(self) {
                 println!("Level completed!");
@@ -246,13 +261,32 @@ impl Playable for PlayingState {
             }
             handle_draw_player(self);
 
+            if self.paused {
+                let (fs, fc, fa) = camera_font_scale(6.);
+
+                let tp = TextParams {
+                    font: self.font,
+                    font_size: fs,
+                    font_scale: fc,
+                    font_scale_aspect: fa,
+                    color: GREEN,
+                };
+                draw_text_ex("PAUSED", 150., 100., tp);
+            }
+            if self.exit_intent {
+                let (fs, fc, fa) = camera_font_scale(6.);
+
+                let tp = TextParams {
+                    font: self.font,
+                    font_size: fs,
+                    font_scale: fc,
+                    font_scale_aspect: fa,
+                    color: GREEN,
+                };
+                draw_text_ex("EXIT GAME?", 150., 100., tp);
+            }
+
             next_frame().await;
-            if is_key_pressed(KeyCode::R) {
-                return StateType::Playing(self.level);
-            }
-            if is_key_pressed(KeyCode::Escape) {
-                return StateType::Menu;
-            }
         }
 
         StateType::Playing(self.level + 1)
