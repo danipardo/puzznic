@@ -76,7 +76,7 @@ impl Playable for MenuState {
 
             draw_texture_ex(background, 0., 0., WHITE, bg_params);
 
-            draw_text_ex("PUZZNIC!", 130., 80., tp);
+            // draw_text_ex("PUZZNIC!", 130., 80., tp);
             draw_text_ex("NEW GAME", 140., 100., self.get_text_params(0));
             draw_text_ex("INSTRUCTIONS", 120., 120., self.get_text_params(1));
             draw_text_ex("QUIT", 155., 140., self.get_text_params(2));
