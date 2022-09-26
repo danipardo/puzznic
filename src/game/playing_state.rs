@@ -1,8 +1,7 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, time::Duration};
 
 use async_trait::async_trait;
 use macroquad::prelude::*;
-
 use crate::game::tile::TileChange;
 
 use super::{
@@ -204,11 +203,23 @@ pub fn draw_score(level: &mut PlayingState) {
 #[async_trait]
 impl Playable for PlayingState {
     async fn run(&mut self) -> super::states::StateType {
-        let desired_ratio = 320. / 200. as f32;
+        let desired_ratio = 320. / 200.;
         let mut mixer = sound::Mixer::new().await;
-        mixer.play_sound(sound::Sounds::LevelIntro).await;
 
+        // stop all sounds
+
+        
+        mixer.play_sound(sound::Sounds::LevelIntro).await;
+        let t2 = std::time::SystemTime::now().checked_add(Duration::from_secs(3)).unwrap();
+        let mut ended = false;
         loop {
+
+            let now = std::time::SystemTime::now();
+            if !ended && now > t2 {
+               ended = true;
+               mixer.play_sound(sound::Sounds::Playing).await;
+            }
+            
             if is_key_pressed(KeyCode::R) {
                 return StateType::Playing(self.level);
             }
@@ -246,7 +257,7 @@ impl Playable for PlayingState {
                 200. / height_factor,
             ));
 
-            draw_score(&mut self);
+            draw_score(self);
             set_camera(&camera);
             if !self.paused && !self.exit_intent {
                 handle_move_player(self, &mut mixer).await;
@@ -256,6 +267,7 @@ impl Playable for PlayingState {
             }
 
             if handle_draw_map(self) {
+                mixer.stop_sound(sound::Sounds::LevelIntro).await;                
                 println!("Level completed!");
                 break;
             }
@@ -286,9 +298,12 @@ impl Playable for PlayingState {
                 draw_text_ex("EXIT GAME?", 150., 100., tp);
             }
 
+            
             next_frame().await;
         }
 
         StateType::Playing(self.level + 1)
     }
 }
+
+

@@ -1,6 +1,6 @@
-use std::{thread, time::Duration};
 
-use macroquad::audio::Sound;
+
+use macroquad::audio::{Sound, PlaySoundParams};
 
 pub enum Sounds {
     MOVE,
@@ -32,6 +32,10 @@ impl Mixer {
                 .unwrap(),
         }
     }
+    pub async fn stop_sound(&mut self, _snd: Sounds) {
+        macroquad::audio::stop_sound(self.playing);
+
+    }
     pub async fn play_sound(&mut self, snd: Sounds) {
         // let mut ctx = AudioContext::new();
         match snd {
@@ -42,7 +46,10 @@ impl Mixer {
                 macroquad::audio::play_sound_once(self.level_intro);
             }
             Sounds::Playing => {                
-                macroquad::audio::play_sound_once(self.playing);
+                macroquad::audio::play_sound(self.playing, PlaySoundParams{
+                    looped: true,
+                    volume: 1.,
+                });
             }
             Sounds::Collided => {
                 macroquad::audio::play_sound_once(self.collided);

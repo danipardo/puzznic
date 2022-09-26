@@ -1,7 +1,7 @@
 use super::{playing_state::*, sound::{Mixer, self}, tile::Tile};
 use crate::game::tile::TileChange;
 use macroquad::prelude::*;
-use std::collections::HashMap;
+use std::{collections::HashMap};
 
 pub struct PlayingState {
     pub map: Vec<Tile>,
@@ -22,7 +22,7 @@ pub struct PlayingState {
     pub score: u32,
     pub time_elpsed: u32,
     pub fading_out: bool,
-    pub dragging: bool,
+    pub dragging: bool
 }
 
 pub struct LevelInfo {
@@ -38,8 +38,8 @@ pub struct LevelInfo {
 
 /// AABB collision detection, returns true if collision found
 fn check_collision_perfect(t1: &Tile, coordinates: &Vec2) -> bool {
-    return (t1.position.x - coordinates.x).abs() < TILE_WIDTH
-        && (t1.position.y - coordinates.y).abs() < TILE_HEIGHT;
+     (t1.position.x - coordinates.x).abs() < TILE_WIDTH
+        && (t1.position.y - coordinates.y).abs() < TILE_HEIGHT
 }
 
 impl PlayingState {

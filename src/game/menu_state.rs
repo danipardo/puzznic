@@ -56,7 +56,7 @@ impl Playable for MenuState {
             set_camera(&camera);
 
             let (fs, fc, fa) = camera_font_scale(10.);
-            let tp = TextParams {
+            let _tp = TextParams {
                 font: self.font,
                 font_size: fs,
                 font_scale: fc,
