@@ -126,11 +126,21 @@ pub async fn handle_move_tiles(level: &mut PlayingState, mixer: &mut Mixer) {
     level.map.retain(|e| !drain.contains(&e.id));
 }
 pub async fn handle_move_player(level: &mut PlayingState, mixer: &mut Mixer) {
-    if is_key_pressed(KeyCode::Left) {
+    if is_key_pressed(KeyCode::Left) && level.dragging_step == 0  {
         level.move_player(Direction::Left, mixer).await;
+        if level.dragging {
+            level.dragging_step +=1;
+                    println!("{}", level.dragging_step);
+        }
+
+
     }
-    if is_key_pressed(KeyCode::Right) {
+    if is_key_pressed(KeyCode::Right) && level.dragging_step == 0 {
         level.move_player(Direction::Right, mixer).await;
+        if level.dragging {
+        level.dragging_step +=1;
+            println!("{}", level.dragging_step);
+        }
     }
 
     if is_key_pressed(KeyCode::Up) && !level.dragging {
@@ -141,6 +151,7 @@ pub async fn handle_move_player(level: &mut PlayingState, mixer: &mut Mixer) {
         level.dragging = true;
     } else {
         level.dragging = false;
+        level.dragging_step =0;
     }
 
     if is_key_pressed(KeyCode::Down) {

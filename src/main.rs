@@ -52,6 +52,6 @@ mod tests {
 
     #[test]
     fn load_level1() {
-        levels::load_level(1);
+        levels::load_level(3);
     }
 }

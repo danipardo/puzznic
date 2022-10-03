@@ -22,7 +22,8 @@ pub struct PlayingState {
     pub score: u32,
     pub time_elpsed: u32,
     pub fading_out: bool,
-    pub dragging: bool
+    pub dragging: bool,
+    pub dragging_step: u8
 }
 
 pub struct LevelInfo {
@@ -140,6 +141,7 @@ impl PlayingState {
             offset_y: 0.0,
             level: 0,
             time: 0,
+            dragging_step: 0
         }
     }
 
@@ -152,7 +154,7 @@ impl PlayingState {
         match direction {
             Direction::Left => {
                 if new_x > 0 {
-                    new_x = new_x - 1;
+                    new_x -= 1;
                 }
             }
             Direction::Right => {
@@ -160,7 +162,7 @@ impl PlayingState {
             }
             Direction::Up => {
                 if new_y > 0 {
-                    new_y = new_y - 1;
+                     new_y -= 1;
                 }
             }
             Direction::Down => new_y = usize::min(self.dimensions.1 - 1, new_y + 1),
@@ -197,6 +199,7 @@ impl PlayingState {
                     );
                     let collision = self.check_collision(&tile, &self.map, &coordinates);
                     if collision.is_none() {
+                        println!("Foo");
                         return Some(TileChange::Jump(Vec2::new(
                             (self.player.position.0) as f32 * TILE_HEIGHT,
                             (self.player.position.1) as f32 * TILE_HEIGHT,

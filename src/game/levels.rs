@@ -18,9 +18,10 @@ pub fn load_level(n: usize) -> LevelInfo {
     let mut rows: Vec<String> = tokens
         .iter()
         .map(|s| s.chars().step_by(2).collect::<String>())
+        .filter(|r| !r.is_empty())
         .collect();
 
-    println!("{:?}", rows);
+//    println!("{:?}", rows);
 
     let map_height = rows.len();
     let map_width = &rows.iter().map(|c| c.len()).max().unwrap();
@@ -31,7 +32,9 @@ pub fn load_level(n: usize) -> LevelInfo {
         }
 
         // get a vec of tuples, where tuple.0 is the index
-        let v: Vec<_> = line.match_indices("-").collect();
+        println!("line=>{}", line);
+        let v: Vec<_> = line.match_indices('-').collect();
+        debug_assert!(!v.is_empty());
         let first_brick_idx = v[0].0;
         let last_brick_idx = v.last().unwrap().0;
 
