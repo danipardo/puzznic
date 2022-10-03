@@ -3,6 +3,7 @@ use super::{
     levels,
     menu_state::{MenuState}
 };
+use crate::game::sound::Mixer;
 use async_trait::async_trait;
 
 #[derive(PartialEq)]
@@ -20,15 +21,19 @@ pub struct GameState {
 
 #[async_trait]
 pub trait Playable {
-    async fn run(&mut self) -> StateType;
+    async fn run(&mut self, mixer: &mut Mixer) -> StateType;
 }
 
 impl GameState {
-    pub async fn run(&self) -> StateType {
+    pub async fn run(&self, mixer: &mut Mixer) -> StateType {
         match self.state {
             StateType::Menu => {
                 let mut menu = MenuState::new().await;
-                return menu.run().await;
+                println!("Jumping to menu");
+//                let mut mixer = Mixer::new().await;
+
+                mixer.stop_music();
+                return  menu.run(mixer).await;
             }
             StateType::Playing(level) => {
                 // Start the game
@@ -37,9 +42,9 @@ impl GameState {
                 let mut game = PlayingState::new().await;
 
                 game.set_level(level_info).await;
-                return game.run().await;
+                return game.run(mixer).await;
 
-                //                play_level(&mut game_state).await;
+                
             }
             _ => StateType::Quit,
         }

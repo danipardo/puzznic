@@ -32,7 +32,7 @@ impl Mixer {
                 .unwrap(),
         }
     }
-    pub async fn stop_sound(&mut self, _snd: Sounds) {
+    pub fn stop_music(&mut self) {
         macroquad::audio::stop_sound(self.playing);
 
     }

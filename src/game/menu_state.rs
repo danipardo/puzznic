@@ -2,7 +2,7 @@
 
 use async_trait::async_trait;
 use macroquad::prelude::*;
-
+use crate::game::sound::Mixer;
 use super::states::{Playable, StateType};
 
 pub struct MenuState {
@@ -35,7 +35,7 @@ impl MenuState {
 }
 #[async_trait]
 impl Playable for MenuState {
-    async fn run(&mut self) -> StateType {
+    async fn run(&mut self, mixer: &mut Mixer) -> StateType {
         let desired_ratio = 320. / 200. as f32;
 
         let background = load_texture("img/menu_bg.png").await.unwrap();

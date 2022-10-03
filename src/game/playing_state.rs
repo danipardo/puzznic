@@ -213,9 +213,9 @@ pub fn draw_score(level: &mut PlayingState) {
 }
 #[async_trait]
 impl Playable for PlayingState {
-    async fn run(&mut self) -> super::states::StateType {
+    async fn run(&mut self, mixer: &mut Mixer) -> super::states::StateType {
         let desired_ratio = 320. / 200.;
-        let mut mixer = sound::Mixer::new().await;
+//        let mut mixer = sound::Mixer::new().await;
 
         // stop all sounds
 
@@ -271,14 +271,14 @@ impl Playable for PlayingState {
             draw_score(self);
             set_camera(&camera);
             if !self.paused && !self.exit_intent {
-                handle_move_player(self, &mut mixer).await;
+                handle_move_player(self, mixer).await;
                 if !is_key_down(KeyCode::Space) {
-                    handle_move_tiles(self, &mut mixer).await;
+                    handle_move_tiles(self, mixer).await;
                 }
             }
 
             if handle_draw_map(self) {
-                mixer.stop_sound(sound::Sounds::LevelIntro).await;                
+                mixer.stop_music();
                 println!("Level completed!");
                 break;
             }
