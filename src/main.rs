@@ -28,7 +28,7 @@ async fn main() {
 mod tests {
     use crate::game::levels;
     #[test]
-    fn load_level1() {
+    fn parse_levels() {
         for i in 1..161 {
             println!("Testing level {i}");
             levels::load_level(i);
